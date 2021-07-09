@@ -215,7 +215,10 @@ public class CliFrontend {
 	protected void run(String[] args) throws Exception {
 		LOG.info("Running 'run' command.");
 
+		// TODO: 获取run动作的默认配置项
 		final Options commandOptions = CliFrontendParser.getRunCommandOptions();
+
+		// TODO: 根据用户指定的配置项进行解析，比如-p 2这种
 		final CommandLine commandLine = getCommandLine(commandOptions, args, true);
 
 		// evaluate help flag
@@ -229,8 +232,10 @@ public class CliFrontend {
 
 		final ProgramOptions programOptions = ProgramOptions.create(commandLine);
 
+		// TODO: 获取用户的Jar包及其依赖
 		final List<URL> jobJars = getJobJarAndDependencies(programOptions);
 
+		// TODO: 获取有效配置(HA的id，Target，JobManager内存，TaskManager内存，每个TM的Slot个数)
 		final Configuration effectiveConfiguration = getEffectiveConfiguration(
 				activeCommandLine, commandLine, programOptions, jobJars);
 
@@ -239,6 +244,7 @@ public class CliFrontend {
 		final PackagedProgram program = getPackagedProgram(programOptions, effectiveConfiguration);
 
 		try {
+			// TODO: 执行程序
 			executeProgram(effectiveConfiguration, program);
 		} finally {
 			program.deleteExtractedLibraries();
@@ -249,7 +255,9 @@ public class CliFrontend {
 	 * Get all provided libraries needed to run the program from the ProgramOptions.
 	 */
 	private List<URL> getJobJarAndDependencies(ProgramOptions programOptions) throws CliArgsException {
+		// TODO: Jar包的入口类名
 		String entryPointClass = programOptions.getEntryPointClassName();
+		// TODO: Jar包的路径
 		String jarFilePath = programOptions.getJarFilePath();
 
 		try {
@@ -1027,12 +1035,15 @@ public class CliFrontend {
 		EnvironmentInformation.logEnvironmentInfo(LOG, "Command Line Client", args);
 
 		// 1. find the configuration directory
+		// TODO: 获取flink的conf目录路径
 		final String configurationDirectory = getConfigurationDirectoryFromEnv();
 
 		// 2. load the global configuration
+		// TODO: 根据conf路径，加载配置
 		final Configuration configuration = GlobalConfiguration.loadConfiguration(configurationDirectory);
 
 		// 3. load the custom command lines
+		// TODO: 封装命令行接口：按顺序Generic, Yarn, Default
 		final List<CustomCommandLine> customCommandLines = loadCustomCommandLines(
 			configuration,
 			configurationDirectory);
@@ -1100,12 +1111,16 @@ public class CliFrontend {
 
 	public static List<CustomCommandLine> loadCustomCommandLines(Configuration configuration, String configurationDirectory) {
 		List<CustomCommandLine> customCommandLines = new ArrayList<>();
+
+		// 这里依次添加了Generic, Yarn, Default三种命令行客户端
+		// 添加Generic客户端
 		customCommandLines.add(new GenericCLI(configuration, configurationDirectory));
 
 		//	Command line interface of the YARN session, with a special initialization here
 		//	to prefix all options with y/yarn.
 		final String flinkYarnSessionCLI = "org.apache.flink.yarn.cli.FlinkYarnSessionCli";
 		try {
+			// 添加Yarn客户端
 			customCommandLines.add(
 				loadCustomCommandLine(flinkYarnSessionCLI,
 					configuration,
@@ -1125,6 +1140,7 @@ public class CliFrontend {
 
 		//	Tips: DefaultCLI must be added at last, because getActiveCustomCommandLine(..) will get the
 		//	      active CustomCommandLine in order and DefaultCLI isActive always return true.
+		// 添加Default客户端
 		customCommandLines.add(new DefaultCLI());
 
 		return customCommandLines;

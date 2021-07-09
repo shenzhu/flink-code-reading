@@ -267,6 +267,7 @@ public class CliFrontendParser {
 
 	public static Options getRunCommandOptions() {
 		Options options = buildGeneralOptions(new Options());
+		// TODO: 获取可选配置项的值
 		options = getProgramSpecificOptions(options);
 		options.addOption(SAVEPOINT_PATH_OPTION);
 		return options.addOption(SAVEPOINT_ALLOW_NON_RESTORED_OPTION);

@@ -48,7 +48,9 @@ abstract class AbstractYarnCli extends AbstractCustomCommandLine {
 	@Override
 	public boolean isActive(CommandLine commandLine) {
 		final String jobManagerOption = commandLine.getOptionValue(addressOption.getOpt(), null);
+		// TODO ID是固定字符串 "yarn-cluster"
 		final boolean yarnJobManager = ID.equals(jobManagerOption);
+		// TODO 判断是否存在Session对应的AppID
 		final boolean hasYarnAppId = commandLine.hasOption(applicationId.getOpt())
 			|| configuration.getOptional(YarnConfigOptions.APPLICATION_ID).isPresent();
 		final boolean hasYarnExecutor = YarnSessionClusterExecutor.NAME.equalsIgnoreCase(configuration.get(DeploymentOptions.TARGET))

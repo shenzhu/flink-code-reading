@@ -96,6 +96,7 @@ public enum ClientUtils {
 
 			LOG.info("Starting program (detached: {})", !configuration.getBoolean(DeploymentOptions.ATTACHED));
 
+			/*TODO 配置环境的上下文，用户代码里的getExecutionEnvironment就会拿到这些环境信息*/
 			ContextEnvironment.setAsContext(
 				executorServiceLoader,
 				configuration,
