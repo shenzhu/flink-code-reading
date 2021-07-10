@@ -504,13 +504,16 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 			}
 		}
 
+		/*TODO 部署前检查：jar包路径，conf路径，yarn最大core数量*/
 		isReadyForDeployment(clusterSpecification);
 
 		// ------------------ Check if the specified queue exists --------------------
 
+		/*TODO 检查指定的yarn队列是否存在*/
 		checkYarnQueues(yarnClient);
 
 		// ------------------ Check if the YARN ClusterClient has the requested resources --------------
+	    /*TODO 检查yarn是否有足够的资源*/
 
 		// Create application via yarnClient
 		final YarnClientApplication yarnApplication = yarnClient.createApplication();
@@ -555,6 +558,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
 		flinkConfiguration.setString(ClusterEntrypoint.EXECUTION_MODE, executionMode.toString());
 
+		/*TODO 开始启动AM*/
 		ApplicationReport report = startAppMaster(
 				flinkConfiguration,
 				applicationName,
@@ -688,7 +692,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 			ClusterSpecification clusterSpecification) throws Exception {
 
 		// ------------------ Initialize the file systems -------------------------
-
+		/*TODO 初始化，创建hadoop的FileSystem*/
 		org.apache.flink.core.fs.FileSystem.initialize(
 				configuration,
 				PluginUtils.createPluginManagerFromRootFolder(configuration));
@@ -707,6 +711,8 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
 		final List<Path> providedLibDirs = Utils.getQualifiedRemoteSharedPaths(configuration, yarnConfiguration);
 
+		/*TODO Yarn应用的文件上传器: FS，对应的HDFS路径
+		*  用来上传: 用户的jar包，flink的依赖，flink的配置文件，之后fileUploader.close()*/
 		final YarnApplicationFileUploader fileUploader = YarnApplicationFileUploader.from(
 			fs,
 			getStagingDir(fs),
@@ -740,6 +746,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
 		configuration.setString(HighAvailabilityOptions.HA_CLUSTER_ID, zkNamespace);
 
+		/*TODO 高可用配置：重试次数，默认为2次*/
 		if (HighAvailabilityMode.isHighAvailabilityModeActivated(configuration)) {
 			// activate re-execution of failed applications
 			appContext.setMaxAppAttempts(
@@ -756,6 +763,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 							1));
 		}
 
+		/*TODO 添加jar包*/
 		final Set<Path> userJarFiles = new HashSet<>();
 		if (jobGraph != null) {
 			userJarFiles.addAll(jobGraph.getUserJars().stream().map(f -> f.toUri()).map(Path::new).collect(Collectors.toSet()));
@@ -877,6 +885,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
 		// Upload the flink configuration
 		// write out configuration file
+		/*TODO 上传flink的配置文件 - flink-conf.yaml*/
 		File tmpConfigurationFile = null;
 		try {
 			tmpConfigurationFile = File.createTempFile(appId + "-flink-conf.yaml", null);
@@ -924,6 +933,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 			}
 		}
 
+		/*TODO 权限验证相关*/
 		Path remoteKrb5Path = null;
 		boolean hasKrb5 = false;
 		String krb5Config = configuration.get(SecurityOptions.KERBEROS_KRB5_PATH);
@@ -985,6 +995,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		fileUploader.close();
 
 		// Setup CLASSPATH and environment variables for ApplicationMaster
+		/*TODO 创建Map，用来存储AM的环境变量和类路径*/
 		final Map<String, String> appMasterEnv = new HashMap<>();
 		// set user specified app master environment variables
 		appMasterEnv.putAll(
@@ -1023,6 +1034,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		// set classpath from YARN configuration
 		Utils.setupYarnClassPath(yarnConfiguration, appMasterEnv);
 
+		/*TODO 将之前封装的Map(AM的环境信息，类路径)，设置到容器里*/
 		amContainer.setEnvironment(appMasterEnv);
 
 		// Set up resource type requirements for ApplicationMaster
@@ -1056,6 +1068,8 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		Thread deploymentFailureHook = new DeploymentFailureHook(yarnApplication, fileUploader.getApplicationDir());
 		Runtime.getRuntime().addShutdownHook(deploymentFailureHook);
 		LOG.info("Submitting application master " + appId);
+
+		/*TODO 前面做很多上传，环境配置，之后提交应用*/
 		yarnClient.submitApplication(appContext);
 
 		LOG.info("Waiting for the cluster to be allocated");

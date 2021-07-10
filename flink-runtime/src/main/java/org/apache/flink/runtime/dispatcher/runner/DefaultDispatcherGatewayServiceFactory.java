@@ -59,6 +59,7 @@ class DefaultDispatcherGatewayServiceFactory implements AbstractDispatcherLeader
 
 		final Dispatcher dispatcher;
 		try {
+			/*TODO 创建Dispatcher*/
 			dispatcher = dispatcherFactory.createDispatcher(
 				rpcService,
 				fencingToken,
@@ -69,6 +70,8 @@ class DefaultDispatcherGatewayServiceFactory implements AbstractDispatcherLeader
 			throw new FlinkRuntimeException("Could not create the Dispatcher rpc endpoint.", e);
 		}
 
+		/*TODO 启动Dispatcher
+		*  RPC服务基于Akka的组件通信，最终是调用onStart方法，也就是接收到消息之后调用的那个方法*/
 		dispatcher.start();
 
 		return DefaultDispatcherGatewayService.from(dispatcher);

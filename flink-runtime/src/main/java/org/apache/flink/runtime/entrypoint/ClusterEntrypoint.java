@@ -209,6 +209,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 	private void runCluster(Configuration configuration, PluginManager pluginManager) throws Exception {
 		synchronized (lock) {
 
+			/*TODO 初始化各种服务，包括RPC相关*/
 			initializeServices(configuration, pluginManager);
 
 			// write host information into configuration
@@ -217,6 +218,8 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
 			final DispatcherResourceManagerComponentFactory dispatcherResourceManagerComponentFactory = createDispatcherResourceManagerComponentFactory(configuration);
 
+			/*TODO JobManager里有三种东西：Dispatcher，Flink内部的ResourceManager和JobMaster
+			*  这里创建和启动JobManager里的组件*/
 			clusterComponent = dispatcherResourceManagerComponentFactory.create(
 				configuration,
 				ioExecutor,
@@ -253,6 +256,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 		LOG.info("Initializing cluster services.");
 
 		synchronized (lock) {
+			/*TODO 用于通信*/
 			commonRpcService = AkkaRpcServiceUtils.createRemoteRpcService(
 				configuration,
 				configuration.getString(JobManagerOptions.ADDRESS),
@@ -524,6 +528,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
 	public static void runClusterEntrypoint(ClusterEntrypoint clusterEntrypoint) {
 
+		/*TODO 不带包名，只有类名，就是SimpleName*/
 		final String clusterEntrypointName = clusterEntrypoint.getClass().getSimpleName();
 		try {
 			clusterEntrypoint.startCluster();

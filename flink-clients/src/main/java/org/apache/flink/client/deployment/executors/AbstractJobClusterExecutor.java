@@ -59,11 +59,14 @@ public class AbstractJobClusterExecutor<ClusterID, ClientFactory extends Cluster
 
 	@Override
 	public CompletableFuture<JobClient> execute(@Nonnull final Pipeline pipeline, @Nonnull final Configuration configuration, @Nonnull final ClassLoader userCodeClassloader) throws Exception {
+		/*TODO 将StreamGraph(流图)转换成JobGraph(作业图)*/
 		final JobGraph jobGraph = PipelineExecutorUtils.getJobGraph(pipeline, configuration);
 
+		/*TODO 集群描述器: 创建，启动了YarnClient，包含一些yarn，flink的配置和环境信息*/
 		try (final ClusterDescriptor<ClusterID> clusterDescriptor = clusterClientFactory.createClusterDescriptor(configuration)) {
 			final ExecutionConfigAccessor configAccessor = ExecutionConfigAccessor.fromConfiguration(configuration);
 
+			/*TODO 设置集群资源配置：JobManager的内存大小，TaskManager的内存大小，TM的slot数量*/
 			final ClusterSpecification clusterSpecification = clusterClientFactory.getClusterSpecification(configuration);
 
 			final ClusterClientProvider<ClusterID> clusterClientProvider = clusterDescriptor

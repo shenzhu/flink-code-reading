@@ -227,8 +227,10 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 		try {
 			leaderElectionService = highAvailabilityServices.getResourceManagerLeaderElectionService();
 
+			/*TODO 创建Yarn的Rm和NM的客户端，初始化并且启动*/
 			initialize();
 
+			/*TODO 通过选举服务启动ResourceManager*/
 			leaderElectionService.start(this);
 			jobLeaderIdService.start(new JobLeaderIdActionsImpl());
 
@@ -467,6 +469,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 					slotRequest.getAllocationId());
 
 				try {
+					/*TODO 由ResourceManager内部的SlotManager去申请资源*/
 					slotManager.registerSlotRequest(slotRequest);
 				} catch (ResourceManagerException e) {
 					return FutureUtils.completedExceptionally(e);
@@ -1041,8 +1044,10 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 	}
 
 	private void startServicesOnLeadership() {
+		/*TODO 启动heartbeat，与TaskManager，JobManager交互*/
 		startHeartbeatServices();
 
+		/*TODO 启动SlotManager*/
 		slotManager.start(getFencingToken(), getMainThreadExecutor(), new ResourceActionsImpl());
 
 		onLeadership();

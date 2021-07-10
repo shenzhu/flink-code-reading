@@ -77,12 +77,14 @@ public class YarnClusterClientFactory extends AbstractContainerizedClusterClient
 	}
 
 	private YarnClusterDescriptor getClusterDescriptor(Configuration configuration) {
+		/*TODO 创建了YarnClient*/
 		final YarnClient yarnClient = YarnClient.createYarnClient();
 		final YarnConfiguration yarnConfiguration = new YarnConfiguration();
 
 		yarnClient.init(yarnConfiguration);
 		yarnClient.start();
 
+		/*TODO 初始化并且启动YarnClient*/
 		return new YarnClusterDescriptor(
 				configuration,
 				yarnConfiguration,

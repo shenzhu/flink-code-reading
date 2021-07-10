@@ -118,6 +118,8 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 		DispatcherRunner dispatcherRunner = null;
 
 		try {
+			/*TODO Dispatcher和ResourceManager都是高可用的，也就是说他们都有leader和follower
+			*  这里得到Dispatcher和ResourceManager的leader*/
 			dispatcherLeaderRetrievalService = highAvailabilityServices.getDispatcherLeaderRetriever();
 
 			resourceManagerRetrievalService = highAvailabilityServices.getResourceManagerLeaderRetriever();
@@ -163,6 +165,7 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
 			final String hostname = RpcUtils.getHostname(rpcService);
 
+			/*TODO 创建ResourceManager*/
 			resourceManager = resourceManagerFactory.createResourceManager(
 				configuration,
 				ResourceID.generate(),
@@ -191,6 +194,7 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 				metricRegistry.getMetricQueryServiceGatewayRpcAddress(),
 				ioExecutor);
 
+			/*TODO 创建并启动Dispatcher => dispatcher会创建和启动JobMaster*/
 			log.debug("Starting Dispatcher.");
 			dispatcherRunner = dispatcherRunnerFactory.createDispatcherRunner(
 				highAvailabilityServices.getDispatcherLeaderElectionService(),
@@ -200,6 +204,7 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 				rpcService,
 				partialDispatcherServices);
 
+			/*TODO 启动ResourceManager*/
 			log.debug("Starting ResourceManager.");
 			resourceManager.start();
 

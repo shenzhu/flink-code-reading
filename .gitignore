@@ -2,6 +2,9 @@
 /shelf/
 /workspace.xml
 *.jar
+*.class
 
 .idea/
 *.iml
+**/target/*
+target/*
