@@ -94,6 +94,10 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
 	// ------------------------------------------------------------------------
 
 	/** RPC service to be used to start the RPC server and to obtain rpc gateways. */
+	/*TODO RpcService是Rpc服务的接口，其主要作用如下
+	*  (1) 根据提供的RpcEndpoint来启动和停止RpcServer(Actor)
+	*  (2) 根据提供的地址连接到(对方的)RpcServer，并返回一个RpcGateway
+	*  (3) 延迟/立刻调度Runnable, Callable*/
 	private final RpcService rpcService;
 
 	/** Unique identifier for this rpc endpoint. */
@@ -168,6 +172,7 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
 	 * to process remote procedure calls.
 	 */
 	public final void start() {
+		/*TODO 终端的启动，实际上是由自身网关(RpcServer)来启动的*/
 		rpcServer.start();
 	}
 
