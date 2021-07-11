@@ -394,6 +394,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 	public void connectToPredecessors(Map<IntermediateDataSetID, IntermediateResult> intermediateDataSets) throws JobException {
 
+		/*TODO 获取输入的JobEdge列表*/
 		List<JobEdge> inputs = jobVertex.getInputs();
 
 		if (LOG.isDebugEnabled()) {
@@ -415,6 +416,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
 			// fetch the intermediate result via ID. if it does not exist, then it either has not been created, or the order
 			// in which this method is called for the job vertices is not a topological order
+			/*TODO 通过ID获取当前JobEdge的输入所对应的IntermediateDataset*/
 			IntermediateResult ires = intermediateDataSets.get(edge.getSourceId());
 			if (ires == null) {
 				throw new JobException("Cannot connect this job graph to the previous graph. No previous intermediate result found for ID "

@@ -506,6 +506,7 @@ public class StreamGraph implements Pipeline {
 			OutputTag outputTag,
 			ShuffleMode shuffleMode) {
 
+		/*TODO 当上游是测输出时，递归调用，并传入侧输出信息*/
 		if (virtualSideOutputNodes.containsKey(upStreamVertexID)) {
 			int virtualId = upStreamVertexID;
 			upStreamVertexID = virtualSideOutputNodes.get(virtualId).f0;
@@ -514,6 +515,7 @@ public class StreamGraph implements Pipeline {
 			}
 			addEdgeInternal(upStreamVertexID, downStreamVertexID, typeNumber, partitioner, null, outputTag, shuffleMode);
 		} else if (virtualPartitionNodes.containsKey(upStreamVertexID)) {
+			/*TODO 当上游是partition时，递归调用并传入partitioner信息*/
 			int virtualId = upStreamVertexID;
 			upStreamVertexID = virtualPartitionNodes.get(virtualId).f0;
 			if (partitioner == null) {
@@ -522,11 +524,13 @@ public class StreamGraph implements Pipeline {
 			shuffleMode = virtualPartitionNodes.get(virtualId).f2;
 			addEdgeInternal(upStreamVertexID, downStreamVertexID, typeNumber, partitioner, outputNames, outputTag, shuffleMode);
 		} else {
+			/*TODO 真正构建StreamEdge*/
 			StreamNode upstreamNode = getStreamNode(upStreamVertexID);
 			StreamNode downstreamNode = getStreamNode(downStreamVertexID);
 
 			// If no partitioner was specified and the parallelism of upstream and downstream
 			// operator matches use forward partitioning, use rebalance otherwise.
+			/*TODO 未指定partitioner的话，会为其选择forward或rebalance分区*/
 			if (partitioner == null && upstreamNode.getParallelism() == downstreamNode.getParallelism()) {
 				partitioner = new ForwardPartitioner<Object>();
 			} else if (partitioner == null) {
@@ -546,6 +550,7 @@ public class StreamGraph implements Pipeline {
 				shuffleMode = ShuffleMode.UNDEFINED;
 			}
 
+			/*TODO 创建StreamEdge*/
 			StreamEdge edge = new StreamEdge(upstreamNode, downstreamNode, typeNumber,
 				partitioner, outputTag, shuffleMode);
 

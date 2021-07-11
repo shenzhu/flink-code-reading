@@ -697,6 +697,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 			executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
 			// now load and instantiate the task's invokable code
+			/*TODO 加载和实例化task的可执行代码*/
 			invokable = loadAndInstantiateInvokable(userCodeClassLoader.asClassLoader(), nameOfInvokableClass, env);
 
 			// ----------------------------------------------------------------
@@ -719,6 +720,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 			executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
 			// run the invokable
+			/*TODO 执行代码(invokable即为operator对象的instance)*/
 			invokable.invoke();
 
 			// make sure, we enter the catch block if the task leaves the invoke() method due

@@ -169,6 +169,7 @@ public class ExecutionGraphBuilder {
 		// create a new execution graph, if none exists so far
 		final ExecutionGraph executionGraph;
 		try {
+			/*TODO 如果不存在执行图，就创建一个新的*/
 			executionGraph = (prior != null) ? prior :
 				new ExecutionGraph(
 					jobInformation,

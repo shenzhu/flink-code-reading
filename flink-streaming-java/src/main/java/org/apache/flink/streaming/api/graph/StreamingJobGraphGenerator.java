@@ -159,9 +159,14 @@ public class StreamingJobGraphGenerator {
 	}
 
 	private JobGraph createJobGraph() {
+		/*TODO 每个JobVertex都会对应一个可序列化的StreamConfig, 用来发送给JobManager和
+		   TaskManager。最后在TaskManager中起Task时，需要从这里面反序列化出所需要的配置信
+		   息, 其中就包括了含有用户代码的StreamOperator
+		*/
 		preValidate();
 
 		// make sure that all vertices start immediately
+		/*TODO streaming模式下，调度模式是所有节点(vertices)一起启动: Eager*/
 		jobGraph.setScheduleMode(streamGraph.getScheduleMode());
 		jobGraph.enableApproximateLocalRecovery(streamGraph.getCheckpointConfig().isApproximateLocalRecoveryEnabled());
 
@@ -175,10 +180,21 @@ public class StreamingJobGraphGenerator {
 			legacyHashes.add(hasher.traverseStreamGraphAndGenerateHashes(streamGraph));
 		}
 
+		/*TODO 最重要的函数，生成JobVertex，JobEdge等，并尽可能多的将节点chain在一起
+		*  setChaining会对source调用createChain方法，该方法会递归调用下游节点，从而构建
+		*  出nodechains。createChain会分析当前节点的出边，根据Operator Chains中的chainable条
+		*  件，将出边分成chainalbe和noChainable两类，并分别递归调用自身方法。之后会将
+		*  StreamNode中的配置信息序列化到 StreamConfig中。如果当前不是 chain中的子节点，则会
+		*  构建JobVertex和JobEdge相连。如果是chain中的子节点，则会将StreamConfig添加到该
+		*  chain的config集合中。一个node chains，除了headOfChain node会生成对应的JobVertex
+		*  其余的nodes都是以序列化的形式写入到StreamConfig中，并保存到headOfChain的
+		*  CHAINED_TASK_CONFIG 配置项中。直到部署时，才会取出并生成对应的ChainOperator*/
 		setChaining(hashes, legacyHashes);
 
+		/*TODO 将每个JobVertex的入边集合也序列化到该JobVertex的StreamConfig中(出边集合已经在setChaining的时候写入了)*/
 		setPhysicalEdges();
 
+		/*TODO 根据group name，为每个JobVertex指定所属的SlotSharingGroup以及针对Iteration的头尾设置CoLocationGroup*/
 		setSlotSharingAndCoLocation();
 
 		setManagedMemoryFraction(
@@ -322,7 +338,9 @@ public class StreamingJobGraphGenerator {
 		final Collection<OperatorChainInfo> initialEntryPoints = new ArrayList<>(chainEntryPoints.values());
 
 		// iterate over a copy of the values, because this map gets concurrently modified
+		/*TODO 从source开始建立node chains*/
 		for (OperatorChainInfo info : initialEntryPoints) {
+			/*TODO 构建node chains，返回当前节点的物理出边；startNodeId != currNodeId时，说明当前节点是子节点*/
 			createChain(
 					info.getStartNodeId(),
 					1,  // operators start at position 1 because 0 is for chained source inputs
@@ -339,7 +357,7 @@ public class StreamingJobGraphGenerator {
 
 		Integer startNodeId = chainInfo.getStartNodeId();
 		if (!builtVertices.contains(startNodeId)) {
-
+			/*TODO 过渡用的出边集合，用来生成最终的JobEdge，注意不包括chain内部的边*/
 			List<StreamEdge> transitiveOutEdges = new ArrayList<StreamEdge>();
 
 			List<StreamEdge> chainableOutputs = new ArrayList<StreamEdge>();
@@ -347,6 +365,7 @@ public class StreamingJobGraphGenerator {
 
 			StreamNode currentNode = streamGraph.getStreamNode(currentNodeId);
 
+			/*TODO 将当前节点的出边分成chainable和nonChainable两类*/
 			for (StreamEdge outEdge : currentNode.getOutEdges()) {
 				if (isChainable(outEdge, streamGraph)) {
 					chainableOutputs.add(outEdge);
@@ -371,6 +390,7 @@ public class StreamingJobGraphGenerator {
 						chainEntryPoints);
 			}
 
+			/*TODO 生成当前节点的显示名，如Keyed Aggregation -> Sink: Unnamed*/
 			chainedNames.put(currentNodeId, createChainedName(currentNodeId, chainableOutputs, Optional.ofNullable(chainEntryPoints.get(currentNodeId))));
 			chainedMinResources.put(currentNodeId, createChainedMinResources(currentNodeId, chainableOutputs));
 			chainedPreferredResources.put(currentNodeId, createChainedPreferredResources(currentNodeId, chainableOutputs));
@@ -385,19 +405,22 @@ public class StreamingJobGraphGenerator {
 				getOrCreateFormatContainer(startNodeId).addOutputFormat(currentOperatorId, currentNode.getOutputFormat());
 			}
 
+			/*TODO 如果当前节点是其实节点，则直接创建JobVertex并返回StreamConfig，否则先创建一个空的StreamConfig*/
 			StreamConfig config = currentNodeId.equals(startNodeId)
 					? createJobVertex(startNodeId, chainInfo)
 					: new StreamConfig(new Configuration());
 
+			/*TODO 设置JobVertex的StreamConfig，基本上是序列化StreamNode中的配置到StreamConfig中*/
 			setVertexConfig(currentNodeId, config, chainableOutputs, nonChainableOutputs, chainInfo.getChainedSources());
 
 			if (currentNodeId.equals(startNodeId)) {
-
+				/*TODO 如果是开头节点*/
 				config.setChainStart();
 				config.setChainIndex(chainIndex);
 				config.setOperatorName(streamGraph.getStreamNode(currentNodeId).getOperatorName());
 
 				for (StreamEdge edge : transitiveOutEdges) {
+					/*TODO 通过StreamEdge构建出JobEdge，创建IntermediateDataset，用来将JobVertex和JobEdge相连接*/
 					connect(startNodeId, edge);
 				}
 
@@ -405,6 +428,7 @@ public class StreamingJobGraphGenerator {
 				config.setTransitiveChainedTaskConfigs(chainedConfigs.get(startNodeId));
 
 			} else {
+				/*TODO 如果不是头节点*/
 				chainedConfigs.computeIfAbsent(startNodeId, k -> new HashMap<Integer, StreamConfig>());
 
 				config.setChainIndex(chainIndex);

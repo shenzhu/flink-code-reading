@@ -307,6 +307,7 @@ public class JobMaster extends FencedRpcEndpoint<JobMasterId> implements JobMast
 		this.shuffleMaster = checkNotNull(shuffleMaster);
 
 		this.jobManagerJobMetricGroup = jobMetricGroupFactory.create(jobGraph);
+		/*TODO 创建调度器，创建的时候把JobGraph转换成ExecutionGraph*/
 		this.schedulerNG = createScheduler(executionDeploymentTracker, jobManagerJobMetricGroup);
 		this.jobStatusListener = null;
 

@@ -973,6 +973,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 			}
 		}
 
+		/*TODO JobManager内存配置*/
 		final JobManagerProcessSpec processSpec = JobManagerProcessUtils.processSpecFromConfigWithNewOptionToInterpretLegacyHeap(
 			flinkConfiguration,
 			JobManagerOptions.TOTAL_PROCESS_MEMORY);

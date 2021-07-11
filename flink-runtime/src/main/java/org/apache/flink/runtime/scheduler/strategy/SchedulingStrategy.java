@@ -30,6 +30,11 @@ import java.util.Set;
  * It can react to execution state changes and partition consumable events.
  * Moreover, it is responsible for resolving task failures.
  */
+/*TODO
+*  EagerSchedulingStrategy 适用于流计算，同时调度所有的task
+*  LazyFromSourcesSchedulingStrategy：适用于批处理，当输入数据准备好时(上游处理完)进行vertices调度
+*  PipelinedRegionSchedulingStrategy：以流水线的局部为粒度进行调度
+* */
 public interface SchedulingStrategy {
 
 	/**
