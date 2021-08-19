@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * Connecting to a rpc server will return a {@link RpcGateway} which can be used to call remote
  * procedures.
  */
-public interface w {
+public interface RpcService {
 
 	/**
 	 * Return the hostname or host address under which the rpc service can be reached.
