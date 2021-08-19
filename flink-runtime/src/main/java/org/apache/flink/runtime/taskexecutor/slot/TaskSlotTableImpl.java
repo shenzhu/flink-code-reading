@@ -224,6 +224,8 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	// Slot report methods
 	// ---------------------------------------------------------------------
 
+	/** 通过createSlotReport可以获得一个SlotReport对象，SlotReport中包含当前TaskExecutor
+	 * 中所有的slot状态以及它们的分配情况。 */
 	@Override
 	public SlotReport createSlotReport(ResourceID resourceId) {
 		List<SlotStatus> slotStatuses = new ArrayList<>();
@@ -271,6 +273,14 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	// Slot methods
 	// ---------------------------------------------------------------------
 
+	/**
+	 * 通过这个方法可以将指定index的slot分配给AllocationID对应的请求
+	 *
+	 * 这里需要注意的是，allocateSLot方法的最后一个参数是超时时间。我们注意到TaskSlotTable有一个成员变量
+	 * TimerService<AllocationID> timerService，通过它可以注册定时器，如果定时器在超时时间到达之前没有被取消，
+	 * 那么SlotAction.timeoutSlot方法就会被调用。
+	 *
+	 * 如果被分配的slot关联的slot在超时之前没有被取消，那么该slot就会被重新释放，标记为Free状态 */
 	@VisibleForTesting
 	@Override
 	public boolean allocateSlot(int index, JobID jobId, AllocationID allocationId, Time slotTimeout) {
@@ -358,6 +368,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	private boolean markExistingSlotActive(TaskSlot<T> taskSlot) {
 		if (taskSlot.markActive()) {
 			// unregister a potential timeout
+			// 如果slot被标记为Active，则会取消在分配slot的时候关联的定时器
 			LOG.info("Activate slot {}.", taskSlot.getAllocationId());
 
 			timerService.unregisterTimeout(taskSlot.getAllocationId());

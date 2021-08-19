@@ -170,6 +170,36 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * TaskExecutor implementation. The task executor is responsible for the execution of multiple
  * {@link Task}.
+ *
+ * 在Flink集群中，每个TaskManager都是一个单独的JVM进程(非MiniCluster模式)，并且在一个TaskManager中
+ * 可能运行多个子任务，这些子任务都在各自独立的线程中运行。为了控制一个TaskManager中可以运行的任务数量，引入了
+ * Task Slot的概念。
+ *
+ * 每一个Task Slot代表了TaskManager所拥有的计算资源的一个固定子集，例如一个拥有3个slot的TaskManager，每个slot
+ * 可以使用1/3的内存。这样运行在不同slot中的子任务不会竞争内存资源，目前Flink还不支持CPU的隔离，只支持内存的隔离。
+ *
+ * 通过调整slot的数量，可以控制子任务的隔离程度。例如，如果每个TaskManager只有1个slot，那么就意味着每一组
+ * 子任务都运行在单独的JVM进程中；每个TaskManager有多个slot的话，就意味着可以有更多的子任务运行在同一个JVM中。
+ * 而在同一个JVM进程中的子任务，可以共享TCP连接和心跳消息，减少数据的网络传输，也能共享一些数据结构。
+ * 一定程度上减少了每个子任务的消耗。
+ *
+ * 默认情况下，Flink允许子任务共享slot，前提是它们属于同一个Job并且不是同一个operator的子任务。这样的结果是，
+ * 在同一个slot中可能会运行Job的一个完整的pipeline。允许Slot共享有两个主要的好处
+ * (1) Flink计算一个Job所需的slot数量时，只需要确定其最大并行度即可，而不用考虑每一个任务的并行度
+ * (2) 能更好的利用资源。如果没有slot共享，那些资源需求不大的子任务和资源需求大的子任务会占用相同的资源，
+ * 但一旦允许slot共享，它们就可能被分配到同一个slot中
+ *
+ * Flink通过SlotSharingGroup和CoLocationGroup来确定在调度任务的时候如何进行资源共享，分别对应两种约束条件
+ * (1) SlotSharingGroup: 相同SlotSharingGroup的不同JobVertex的子任务可以被分配在同一个slot中，
+ * 但不保证能做到
+ * (2) CoLocationGroup：相同SlotSharingGroup的不同JobVertex，它们的第n个子任务必须保证都在同一个slot中，
+ * 这是一种强制性的约束
+ *
+ * TaskExecutor需要向ResourceManager报告所有的slot的状态，这样ResoureManager就知道了所有slot的分配情况
+ * 主要发生在这两种情况之下
+ * (1) TaskExecutor首次和ResourceManager建立连接的时候，需要发送SlotReport
+ * (2) TaskExecutor和ResourceManager定期发送心跳信息，心跳中包含SlotReport
+ *
  */
 public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
@@ -1157,6 +1187,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			InstanceID taskExecutorRegistrationId,
 			ClusterInformation clusterInformation) {
 
+		// 首次建立连接，向ResourceManager报告slot信息
 		final CompletableFuture<Acknowledge> slotReportResponseFuture = resourceManagerGateway.sendSlotReport(
 			getResourceID(),
 			taskExecutorRegistrationId,
@@ -2021,6 +2052,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		@Override
 		public TaskExecutorHeartbeatPayload retrievePayload(ResourceID resourceID) {
 			validateRunsInMainThread();
+			// 心跳信息
 			return new TaskExecutorHeartbeatPayload(taskSlotTable.createSlotReport(getResourceID()), partitionTracker.createClusterPartitionReport());
 		}
 	}

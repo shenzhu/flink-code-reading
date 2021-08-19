@@ -29,6 +29,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * 
  * <p>In contrast, the {@link AllocationID} represents the a slot allocation and changes
  * every time the slot is allocated by a JobManager.
+ *
+ * SlotID是一个slot的唯一标识，它包含两个属性，其中ResourceID表明该slot所在的TaskExecutor,
+ * slotNumber是该slot在TaskExecutor中的索引位置。
  */
 public class SlotID implements ResourceIDRetrievable, Serializable {
 
