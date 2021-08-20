@@ -43,6 +43,15 @@ import java.util.concurrent.Executor;
  * <p>In order to free resources and avoid resource leaks, idling task managers (task managers whose
  * slots are currently not used) and pending slot requests time out triggering their release and
  * failure, respectively.
+ *
+ * ResourceManager借助SlotManager来管理slot.
+ * SlotManager维护了所有已经注册的TaskExecutor的所有slot的状态以及分配情况, SlotManager还维护了所有处于等待状态的
+ * slot请求，每当又一个新的slot注册或者一个已经分配的slot被释放的时候，SlotManager会试图去满足处于等待状态的slot request.
+ * 如果可用的slot不满足要求，SlotManager会通过ResourceActions#allocateResource(ResourceProfile)来告知
+ * ResourceManager, ResourceManager可能会尝试启动新的TaskExecutor(比如Yarn模式下).
+ *
+ * 此外，长时间处于空闲状态的TaskExecutor或者长时间没有被满足的pending slot request, 会触发超时机制进行处理.
+ *
  */
 public interface SlotManager extends AutoCloseable {
 	int getNumberRegisteredSlots();

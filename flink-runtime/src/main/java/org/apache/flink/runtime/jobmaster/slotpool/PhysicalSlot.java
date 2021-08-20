@@ -23,6 +23,16 @@ import org.apache.flink.runtime.jobmaster.SlotContext;
 /**
  * The context of an {@link AllocatedSlot}. This represent an interface to classes outside the slot pool to interact
  * with allocated slots.
+ *
+ * <p>首先要区分一下PhysicalSlot和LogicalSlot这两个概念: PhysicalSlot表征的是物理意义上TaskExecutor上的一个 slot,
+ * 而LogicalSlot表征逻辑上的一个slot，一个task可以部署到一个LogicalSlot上，但它和物理上一个具体的slot并不是一一对应的。
+ * 由于资源共享等机制的存在，多个LogicalSlot可能被映射到同一个PhysicalSlot上.
+ *
+ * <p>PhysicalSlot接口唯一的实现类是AllocatedSlot.
+ *
+ * <p>同样需要关注一下AllocationID和SlotRequestID的区别: AllocationID是用来区分物理内存的分配，它总是和AllocatedSlot向关联的;
+ * 而SlotRequestID是任务调度执行的时候请求LogicalSlot, 是和LogicalSlot关联的.
+ *
  */
 public interface PhysicalSlot extends SlotContext {
 

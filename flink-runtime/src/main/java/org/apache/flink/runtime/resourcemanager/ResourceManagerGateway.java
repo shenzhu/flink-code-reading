@@ -52,6 +52,11 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * The {@link ResourceManager}'s RPC gateway interface.
+ *
+ * <p>requestSlot和cancelSlotRequest主要供JobMaster进行调用，而sendSlotReport和notifySlotAvailable则主要
+ * 供TaskExecutor调用.
+ * ResourceManager在接收到上述RPC调用之后，会通过SlotManager完成具体的工作.
+ *
  */
 public interface ResourceManagerGateway extends FencedRpcGateway<ResourceManagerId>, ClusterPartitionManager {
 

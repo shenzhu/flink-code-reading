@@ -37,6 +37,10 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * Implementation of the {@link LogicalSlot} which is used by the {@link SlotPoolImpl}.
+ *
+ * <p>注意，SingleLogicalSlot实现了PhysicalSlot.Payload接口，也就是说SingleLogicalSlot可以作为payload被分配给
+ * PhysicalSlot。
+ * 类似地, LogicalSlot 同样规定了其所能承载的payload, LogicalSlot.Payload接口的实现类是Execution, 也就是需要被调度执行的一个 task.
  */
 public class SingleLogicalSlot implements LogicalSlot, PhysicalSlot.Payload {
 

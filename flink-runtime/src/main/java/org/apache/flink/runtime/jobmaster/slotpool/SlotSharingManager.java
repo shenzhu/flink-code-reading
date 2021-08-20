@@ -363,6 +363,23 @@ public class SlotSharingManager {
 
 	/**
 	 * {@link TaskSlot} implementation which can have multiple other task slots assigned as children.
+	 *
+	 * <p>为了实现slot资源的共享，我们需要把多个LogicalSlot映射到同一个PhysicalSlot上，那么这个映射是如何实现的呢？
+	 * 这里就需要引入PhysicalSlot.Payload接口的另一个实现：SlotSharingManager的内部类SlotSharingManager.MultiTaskSlot.
+	 *
+	 * <p>MultiTaskSlot和SingleTaskSlot的公共父类是TaskSlot, 通过构造一个由TaskSlot构成的树形结构来实现slot共享和
+	 * CoLocationGroup的强制约束。MultiTaskSlot对应树形结构的内部节点, 它可以包含多个子节点(可以是MultiTaskSlot，也可以是SingleTaskSlot);
+	 * 而SingleTaskSlot对应树形结构的叶子结点。
+	 *
+	 * <p>树的根节点是MultiTaskSlot, 根节点会被分配一个SlotContext, SlotContext代表了其所分配的TaskExecutor中的一个物理slot,
+	 * 这棵树中所有的任务都会在同一个slot中运行。
+	 * 一个MultiTaskSlot可以包含多个叶子节点，只要用来区分这些叶子节点TaskSlot的AbstractID不同即可(可能是JobVertexID,
+	 * 也可能是CoLocationGroup的ID.
+	 *
+	 * <p>对于普通的SlotSharingGroup的约束，形成的树形结构是: MultiTaskSlot作为根节点, 多个SingleTaskSlot作为叶子节点，
+	 * 这些叶子节点分别代表不同的任务，用来区分它们的JobVertexID不同。
+	 * 对于CoLocationGroup强制约束，会在MultiTaskSlot根节点的下一级创建一个MultiTaskSlot节点(用CoLocationGroupID)来区分，
+	 * 同一个CoLocationGroup约束下的子任务进一步作为第二层MultiTaskSlot的叶子节点.
 	 */
 	public final class MultiTaskSlot extends TaskSlot implements PhysicalSlot.Payload {
 

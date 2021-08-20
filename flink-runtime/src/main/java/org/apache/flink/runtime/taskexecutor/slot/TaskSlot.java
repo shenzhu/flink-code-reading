@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  * <p>An allocated or active slot can only be freed if it is empty. If it is not empty, then it's state
  * can be set to releasing indicating that it can be freed once it becomes empty.
  *
- * TaskSlot是在TaskExecutor中对slot的抽象，可能处于Free, Releasing, Allocated, Active四种状态中
+ * <p>TaskSlot是在TaskExecutor中对slot的抽象，可能处于Free, Releasing, Allocated, Active四种状态中
  *
  * @param <T> type of the {@link TaskSlotPayload} stored in this slot
  */

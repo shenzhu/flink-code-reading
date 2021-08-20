@@ -101,6 +101,14 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *     <li>{@link #registerJobManager(JobMasterId, ResourceID, String, JobID, Time)} registers a {@link JobMaster} at the resource manager</li>
  *     <li>{@link #requestSlot(JobMasterId, SlotRequest, Time)} requests a slot from the resource manager</li>
  * </ul>
+ *
+ * TaskExecutor对slot的管理仅仅局限于单个TaskExecutor，而ResourceManager则需要对所有TaskExecutor中的slot进行管理，
+ * 所有的JobManager都是通过ResourceManager进行资源的申请，ResourceManager则根据当前的集群的计算资源使用情况
+ * 将请求转发给TaskExecutor.
+ *
+ * ResourceManager实际上是通过SlogManager来管理TaskExecutor所注册的所有slot，但ResourceManager自身需要对外提供
+ * RPC调用方法，从而将slot管理相关的方法暴露给JobMaster和TaskExecutor.
+ *
  */
 public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 		extends FencedRpcEndpoint<ResourceManagerId>
@@ -1196,18 +1204,35 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 	//  Static utility classes
 	// ------------------------------------------------------------------------
 
+	/**
+	 * <p>FLIP-6引入的一个重要特性是，ResourceManager支持动态管理TaskExecutor计算资源，从而可以更好地和Yarn, Mesos, Kubernetes
+	 * 等框架进行集成，动态管理计算资源。下面我们来介绍下这个特性是怎么实现的。
+	 *
+	 * <p>在SlotManager中, 如果当前注册的slot不能满足slot request的要求，那么SlotManager会通过
+	 * ResourceActions#allocateResource回调告知 ResourceManager; 当一个SlotManager检查到一个TaskExecutor长时间处于
+	 * Idle状态时，也会通过ResourceActions#releaseResource回调告知 ResourceManager。通过这两个回调, ResourceManager
+	 * 就可以动态申请资源及释放资源.
+	 *
+	 * <p>startNewWorker和stopWorker这两个抽象方法是实现动态申请和释放资源的关键。
+	 * 对于Standalone模式而言, TaskExecutor是固定的，不支持动态启动和释放。
+	 *
+	 * <p>而对于在Yarn上运行的Flink, YarnResourceManager中这两个方法的具体实现就涉及到启动新的container和释放已经申请的container。
+	 */
 	private class ResourceActionsImpl implements ResourceActions {
 
 		@Override
 		public void releaseResource(InstanceID instanceId, Exception cause) {
 			validateRunsInMainThread();
 
+			// 释放资源
 			ResourceManager.this.releaseResource(instanceId, cause);
 		}
 
 		@Override
 		public boolean allocateResource(WorkerResourceSpec workerResourceSpec) {
 			validateRunsInMainThread();
+
+			// 申请新的资源，具体行为和不同的ResourceManager的实现有关，其返回的列表相当于是承诺即将分配的资源
 			return startNewWorker(workerResourceSpec);
 		}
 
