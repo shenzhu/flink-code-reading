@@ -53,6 +53,10 @@ import java.util.stream.Collectors;
 /**
  * Scheduler that assigns tasks to slots. This class is currently work in progress, comments will be updated as we
  * move forward.
+ *
+ * <p>SchedulerImpl借助SlotPool来申请PhysicalSlot, 借助SlotSharingManager实现slot共享。
+ * SlotSelectionStrategy接口主要用于从一组slot中选出最符合资源申请偏好的一个.
+ *
  */
 public class SchedulerImpl implements Scheduler {
 

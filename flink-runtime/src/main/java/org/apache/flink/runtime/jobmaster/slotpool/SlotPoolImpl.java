@@ -86,6 +86,11 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>All the allocation or the slot offering will be identified by self generated AllocationID, we will use it to
  * eliminate ambiguities.
  *
+ * <p>JobManager使用SlotPool来向ResourceManager申请slot，并管理所有分配给该JobManager的slots，这里说的slot指的是physical slot.
+ *
+ * <p>每一个分配给SlotPool的slot都通过AllocationID进行唯一区分, getAvailableSlotsInformation方法可以获取当前可用的slots(还没有payload),
+ * 而后可以通过allocateAvailableSlot将特定AllocationID关联的AllocatedSlot分配给指定的SlotRequestID对应的请求.
+ *
  * <p>TODO : Make pending requests location preference aware
  * TODO : Make pass location preferences to ResourceManager when sending a slot request
  */
@@ -102,15 +107,19 @@ public class SlotPoolImpl implements SlotPool {
 	private final HashSet<ResourceID> registeredTaskManagers;
 
 	/** The book-keeping of all allocated slots. */
+	// 所有分配给当前JobManager的slots
 	private final AllocatedSlots allocatedSlots;
 
 	/** The book-keeping of all available slots. */
+	// 所有可用的slots(已经分配给JobManager，但还没有装在payload)
 	private final AvailableSlots availableSlots;
 
 	/** All pending requests waiting for slots. */
+	// 所有处于等待状态的slot request(已经发送请求给ResourceManager)
 	private final DualKeyLinkedMap<SlotRequestId, AllocationID, PendingRequest> pendingRequests;
 
 	/** The requests that are waiting for the resource manager to be connected. */
+	// 处于等待状态的slot request(还没有发送请求给ResourceManager, 此时没有和ResourceManager建立连接)
 	private final LinkedHashMap<SlotRequestId, PendingRequest> waitingForResourceManager;
 
 	/** Timeout for external request calls (e.g. to the ResourceManager or the TaskExecutor). */
@@ -310,8 +319,10 @@ public class SlotPoolImpl implements SlotPool {
 	private CompletableFuture<AllocatedSlot> requestNewAllocatedSlotInternal(PendingRequest pendingRequest) {
 
 		if (resourceManagerGateway == null) {
+			// 当前没有和ResourceManager建立连接，则需要等待ResourceManager建立连接
 			stashRequestWaitingForResourceManager(pendingRequest);
 		} else {
+			// 当前已经和ResourceManager建立连接，向ResourceManager申请slot
 			requestSlotFromResourceManager(resourceManagerGateway, pendingRequest);
 		}
 
@@ -325,9 +336,11 @@ public class SlotPoolImpl implements SlotPool {
 		checkNotNull(resourceManagerGateway);
 		checkNotNull(pendingRequest);
 
+		// 生成一个AllocationID，后面分配的slot通过AllocationID区分
 		final AllocationID allocationId = new AllocationID();
 		pendingRequest.setAllocationId(allocationId);
 
+		// 添加到等待处理的请求中
 		pendingRequests.put(pendingRequest.getSlotRequestId(), allocationId, pendingRequest);
 
 		pendingRequest.getAllocatedSlotFuture().whenComplete(
@@ -347,6 +360,7 @@ public class SlotPoolImpl implements SlotPool {
 		log.info("Requesting new slot [{}] and profile {} with allocation id {} from resource manager.",
 			pendingRequest.getSlotRequestId(), pendingRequest.getResourceProfile(), allocationId);
 
+		// 通过RPC向RM请求slot
 		CompletableFuture<Acknowledge> rmResponse = resourceManagerGateway.requestSlot(
 			jobMasterId,
 			new SlotRequest(jobId, allocationId, pendingRequest.getResourceProfile(), jobManagerAddress),
@@ -380,6 +394,9 @@ public class SlotPoolImpl implements SlotPool {
 		}
 	}
 
+	/**
+	 * 如果当前没有和RM建立连接，则需要等待RM建立连接，加入waitingForResourceManager，一旦和RM建立连接，就会
+	 * 向RM发送请求. */
 	private void stashRequestWaitingForResourceManager(final PendingRequest pendingRequest) {
 
 		log.info("Cannot serve slot request, no ResourceManager connected. " +
@@ -406,6 +423,7 @@ public class SlotPoolImpl implements SlotPool {
 		releaseSingleSlot(slotRequestId, cause);
 	}
 
+	// 将allocationID相关联的slot分配给slotRequestId对应的请求
 	@Override
 	public Optional<PhysicalSlot> allocateAvailableSlot(
 		@Nonnull SlotRequestId slotRequestId,
@@ -413,8 +431,10 @@ public class SlotPoolImpl implements SlotPool {
 
 		componentMainThreadExecutor.assertRunningInMainThread();
 
+		// 从availableSlots中移除
 		AllocatedSlot allocatedSlot = availableSlots.tryRemove(allocationID);
 		if (allocatedSlot != null) {
+			// 加入已经分配的映射关系中
 			allocatedSlots.add(slotRequestId, allocatedSlot);
 			return Optional.of(allocatedSlot);
 		} else {
@@ -422,6 +442,7 @@ public class SlotPoolImpl implements SlotPool {
 		}
 	}
 
+	// 如果当前没有可用的slot，则可以要求SlotPool向ResourceManager进行申请
 	@Nonnull
 	@Override
 	public CompletableFuture<PhysicalSlot> requestNewAllocatedSlot(
@@ -623,6 +644,8 @@ public class SlotPoolImpl implements SlotPool {
 		}
 	}
 
+	/**
+	 * 一旦RM完成了slot分配的处理流程，会将分配的slot提供给JobManager，最终SlotPool.offerSlots()会被调用 */
 	@Override
 	public Collection<SlotOffer> offerSlots(
 			TaskManagerLocation taskManagerLocation,
@@ -688,18 +711,21 @@ public class SlotPoolImpl implements SlotPool {
 			final SlotID newSlotId = new SlotID(taskManagerLocation.getResourceID(), slotOffer.getSlotIndex());
 
 			if (existingSlotId.equals(newSlotId)) {
+				// 这个slot在之前已经被SlotPool接受了，相当于TaskExecutor发送了一个重复的offer
 				log.info("Received repeated offer for slot [{}]. Ignoring.", allocationID);
 
 				// return true here so that the sender will get a positive acknowledgement to the retry
 				// and mark the offering as a success
 				return true;
 			} else {
+				// 已经有一个其他的AllocatedSlot和这个AllocationID相关联了，因此不能接受这个slot
 				// the allocation has been fulfilled by another slot, reject the offer so the task executor
 				// will offer the slot to the resource manager
 				return false;
 			}
 		}
 
+		// 新建一个AllocatedSlot对象，表示新分配的slot
 		final AllocatedSlot allocatedSlot = new AllocatedSlot(
 			allocationID,
 			taskManagerLocation,
@@ -869,6 +895,9 @@ public class SlotPoolImpl implements SlotPool {
 
 	/**
 	 * Check the available slots, release the slot that is idle for a long time.
+	 *
+	 * <p>slotPool启动的时候会开启一个定时调度的任务，周期性地检查空闲的slot，如果slot空闲时间过长，会将该
+	 * slot归还给TaskManager.
 	 */
 	protected void checkIdleSlot() {
 

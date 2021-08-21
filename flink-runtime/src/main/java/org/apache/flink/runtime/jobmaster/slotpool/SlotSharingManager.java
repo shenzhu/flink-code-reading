@@ -82,6 +82,16 @@ import java.util.stream.Stream;
  * constraint is uniquely identified by a {@link AbstractID} such that we cannot add a second co-located
  * {@link MultiTaskSlot} to the same root node. Now all co-located tasks will be added to co-located
  * multi task slot.
+ *
+ * <p>SlotPool主要负责的是分配给当前JobMaster的PhysicalSlot的管理。但是具体到每一个Task所需要的计算资源的调度和管理,
+ * 是按照LogicalSlot进行组织的, 不同的Task所分配的LogicalSlot各不相同，但它们底层的PhysicalSlot可能是同一个。
+ * 主要的逻辑都封装在SlotSharingManager和Scheduler中。
+ *
+ * <p>通过构造一个由TaskSlot构成的树形结构可以实现SlotSharingGroup内的资源共享以及CoLocationGroup的强制约束,
+ * 这主要就是通过SlotSharingManager来完成的。每一个SlotSharingGroup都会有一个与其对应的SlotSharingManager。
+ *
+ * <p>SlotSharingManager主要的成员变量如下, 除了关联的SlotSharingGroupId以外，最重要的就是用于管理TaskSlot的三个Map.
+ *
  */
 public class SlotSharingManager {
 
@@ -95,6 +105,7 @@ public class SlotSharingManager {
 	/** Owner of the slots to which to return them when they are released from the outside. */
 	private final SlotOwner slotOwner;
 
+	// 所有的TaskSlot，包括root和inner和leaf
 	private final Map<SlotRequestId, TaskSlot> allTaskSlots;
 
 	/** Root nodes which have not been completed because the allocated slot is still pending. */
@@ -180,6 +191,7 @@ public class SlotSharingManager {
 	}
 
 	private void tryMarkSlotAsResolved(SlotRequestId slotRequestId, SlotInfo slotInfo) {
+		// 一旦physical slot完成分配，就从unresolvedRootSlots中移除，加入到resolvedRootSlots中.
 		final MultiTaskSlot resolvedRootNode = unresolvedRootSlots.remove(slotRequestId);
 
 		if (resolvedRootNode != null) {
