@@ -50,6 +50,16 @@ import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * An input channel, which requests a local subpartition.
+ *
+ * <p>如果一个InputChannel和其消费的上游ResultPartition所属Task都在同一个TaskManager中运行,
+ * 那么它们之间的数据交换就在同一个JVM进程内不同线程之间进行，无需通过网络交换。
+ * ResultSubpartition中的buffer可以通过ResultSubpartitionView进行消费。
+ *
+ * <p>LocalInputChannel实现了InputChannel接口，同时也实现了BufferAvailabilityListener接口。
+ * LocalInputChannel通过ResultPartitionManager请求创建和指定ResultSubpartition关联的ResultSubpartitionView,
+ * 并以自身作为ResultSubpartitionView的回调。这样一旦ResultSubpartition有数据产出时, ResultSubpartitionView会得到通知,
+ * 同时LocalInputChannel的回调函数也会被调用，这样消费者这一端就可以及时获取到数据的生产情况，从而及时地去消费数据。
+ *
  */
 public class LocalInputChannel extends InputChannel implements BufferAvailabilityListener {
 
@@ -115,6 +125,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 		channelStatePersister.stopPersisting(checkpointId);
 	}
 
+	/** 请求消费对应的子分区 */
 	@Override
 	protected void requestSubpartition(int subpartitionIndex) throws IOException {
 
@@ -130,6 +141,9 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 					this, subpartitionIndex, partitionId);
 
 				try {
+					// Local, 无需网络通信，通过ResultPartitionManager创建一个ResultSubpartitionView
+					// LocalInputChannel实现了BufferAvailabilityListener
+					// 在有数据时会得到通知，notifyDataAvailable会被调用，进而将当前channel加到InputGate的可用channel队列中
 					ResultSubpartitionView subpartitionView = partitionManager.createSubpartitionView(
 						partitionId, subpartitionIndex, this);
 
@@ -189,6 +203,7 @@ public class LocalInputChannel extends InputChannel implements BufferAvailabilit
 		}
 	}
 
+	/** 读取数据，借助ResultSubpartitionView消费ResultSubpartition中的数据 */
 	@Override
 	Optional<BufferAndAvailability> getNextBuffer() throws IOException {
 		checkError();

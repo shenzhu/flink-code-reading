@@ -43,6 +43,10 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * <p><strong>NOTE:</strong> before using this buffer in the netty stack, a buffer allocator must be
  * set via {@link #setAllocator(ByteBufAllocator)}!
+ *
+ * <p>Flink Buffer的实现类NetworkBuffer直接继承了Netty的AbstractReferenceCountedByteBuf, 使得Netty可以直接使用Flink
+ * 的Buffer，从而避免了在Flink Buffers和Netty Buffers之间的数据拷贝。
+ *
  */
 public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Buffer {
 

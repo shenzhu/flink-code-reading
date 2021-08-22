@@ -74,6 +74,14 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * subpartitions -- one for each parallel reduce subtask. As shown in the Figure, each reduce task
  * will have an input gate attached to it. This will provide its input, which will consist of one
  * subpartition from each partition of the intermediate result.
+ *
+ * <p>Task的输入被抽象为InputGate, 而InputGate则由InputChannel组成, InputChannel和该Task需要消费的
+ * ResultSubpartition是一一对应的。
+ *
+ * <p>Task通过循环调用InputGate.getNext方法获取输入数据，并将获取的数据交给它所封装的算子进行处理，这构成了一个
+ * Task的基本运行逻辑。InputGate有两个具体的实现，分别为SingleInputGate和UnionInputGate, UnionInputGate
+ * 有多个SingleInputGate联合构成。
+ *
  */
 public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>, AutoCloseable, ChannelStateHolder {
 
@@ -100,6 +108,8 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 	 *
 	 * <p>Note: It should be guaranteed that the previous returned buffer has been recycled before getting next one.
 	 *
+	 * <p>阻塞调用
+	 *
 	 * @return {@code Optional.empty()} if {@link #isFinished()} returns true.
 	 */
 	public abstract Optional<BufferOrEvent> getNext() throws IOException, InterruptedException;
@@ -108,6 +118,8 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 	 * Poll the {@link BufferOrEvent}.
 	 *
 	 * <p>Note: It should be guaranteed that the previous returned buffer has been recycled before polling next one.
+	 *
+	 * <p>非阻塞调用
 	 *
 	 * @return {@code Optional.empty()} if there is no data to return or if {@link #isFinished()} returns true.
 	 */
@@ -181,6 +193,7 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 	 */
 	public abstract void setup() throws IOException;
 
+	// 请求消费ResultPartition
 	public abstract void requestPartitions() throws IOException;
 
 	public abstract CompletableFuture<Void> getStateConsumedFuture();

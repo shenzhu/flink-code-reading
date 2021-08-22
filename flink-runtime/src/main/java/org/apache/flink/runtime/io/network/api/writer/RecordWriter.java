@@ -41,8 +41,11 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 /**
  * An abstract record-oriented runtime result writer.
  *
- * <p>The RecordWriter wraps the runtime's {@link ResultPartitionWriter} and takes care of
- * channel selection and serializing records into bytes.
+ * <p>The RecordWriter wraps the runtime's {@link ResultPartitionWriter} and takes care of channel
+ * selection and serializing records into bytes.
+ *
+ * <p>Task通过RecordWriter将结果写入ResultPartition中。
+ * RecordWriter是对ResultPartitionWriter的一层封装，并负责将记录对象序列化到buffer中。
  *
  * @param <T> the type of the record that can be emitted with this record writer
  */
@@ -56,8 +59,10 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 
 	protected final ResultPartitionWriter targetPartition;
 
+	// channel的数量，即sub-partition的数量
 	protected final int numberOfChannels;
 
+	// 序列化
 	protected final DataOutputSerializer serializer;
 
 	protected final Random rng = new XORShiftRandom();

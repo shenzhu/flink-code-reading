@@ -154,6 +154,8 @@ public class RemoteInputChannel extends InputChannel {
 
 	/**
 	 * Requests a remote subpartition.
+	 * RemoteInputChannel请求远端的ResultSubpartition, 会创建一个PartitionRequestClient, 并通过Netty发送PartitionRequest请求，
+	 * 这时会带上当前InputChannel的id。
 	 */
 	@VisibleForTesting
 	@Override

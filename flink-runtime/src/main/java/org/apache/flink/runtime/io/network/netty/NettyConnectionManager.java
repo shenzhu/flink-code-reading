@@ -28,6 +28,10 @@ import java.io.IOException;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * 在Flink中, 不同Task之间的网络传输基于Netty实现。
+ * ConnectionManager管理所有的网络的连接，而NettyConnectionManager就是ConnectionManager的具体实现。
+ */
 public class NettyConnectionManager implements ConnectionManager {
 
 	private final NettyServer server;
@@ -54,6 +58,8 @@ public class NettyConnectionManager implements ConnectionManager {
 		this.nettyProtocol = new NettyProtocol(checkNotNull(partitionProvider), checkNotNull(taskEventPublisher));
 	}
 
+	/** NettyConnectionManager在启动的时候会创建并启动NettyClient和NettyServer，NettyServer会启动一个服务端监听，
+	 * 等待其它NettyClient的连接 */
 	@Override
 	public int start() throws IOException {
 		client.init(nettyProtocol, bufferPool);
@@ -61,9 +67,14 @@ public class NettyConnectionManager implements ConnectionManager {
 		return server.init(nettyProtocol, bufferPool);
 	}
 
+	/** 当RemoteInputChannel请求一个远端的ResultSubpartition时, NettyClient就会发起和请求的ResultSubpartition
+	 * 所在Task的NettyServer的连接，后续所有的数据交换都在这个连接上进行。
+	 * 两个Task之间只会建立一个连接，这个连接会在不同的RemoteInputChannel和ResultSubpartition之间进行复用 */
 	@Override
 	public PartitionRequestClient createPartitionRequestClient(ConnectionID connectionId)
 			throws IOException, InterruptedException {
+		// 这里实际上会建立和其他Task的server的连接
+		// 返回的PartitionRequestClient中封装了netty channel和chanel handler
 		return partitionRequestClientFactory.createPartitionRequestClient(connectionId);
 	}
 

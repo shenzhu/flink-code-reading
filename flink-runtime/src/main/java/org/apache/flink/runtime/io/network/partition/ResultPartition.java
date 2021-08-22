@@ -69,6 +69,11 @@ import static org.apache.flink.util.Preconditions.checkState;
  * <h2>Buffer management</h2>
  *
  * <h2>State management</h2>
+ *
+ * <p>Task产出的每一个ResultPartition都有一个关联的ResultPartitionWriter，同时也都有一个独立的LocalBufferPool
+ * 负责提供写入数据所需的buffer.
+ * ResultPartition实现了ResultPartitionWriter接口.
+ *
  */
 public abstract class ResultPartition implements ResultPartitionWriter {
 

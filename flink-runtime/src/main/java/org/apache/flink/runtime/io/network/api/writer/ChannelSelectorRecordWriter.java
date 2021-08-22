@@ -31,10 +31,19 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>The ChannelSelectorRecordWriter extends the {@link RecordWriter} and emits records to the channel
  * selected by the {@link ChannelSelector} for regular {@link #emit(IOReadableWritable)}.
  *
+ * <p>当Task通过RecordWriter输出一条记录时，主要流程为:
+ * <ol>
+ * 	<li>通过ChannelSelector确定写入的目标channel</li>
+ * 	<li>使用RecordSerializer对记录进行序列化</li>
+ * 	<li>向ResultPartition请求BufferBuilder，用于写入序列化结果</li>
+ * 	<li>向ResultPartition添加BufferConsumer，用于读取写入Buffer的数据</li>
+ * </ol>
+ *
  * @param <T> the type of the record that can be emitted with this record writer
  */
 public final class ChannelSelectorRecordWriter<T extends IOReadableWritable> extends RecordWriter<T> {
 
+	// 决定一条记录应该写入哪一个channel，即sub-partition
 	private final ChannelSelector<T> channelSelector;
 
 	ChannelSelectorRecordWriter(
@@ -50,6 +59,7 @@ public final class ChannelSelectorRecordWriter<T extends IOReadableWritable> ext
 
 	@Override
 	public void emit(T record) throws IOException {
+		// channelSelector确定目标channel
 		emit(record, channelSelector.selectChannel(record));
 	}
 
