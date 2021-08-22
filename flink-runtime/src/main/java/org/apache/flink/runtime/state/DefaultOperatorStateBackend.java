@@ -45,6 +45,8 @@ import java.util.concurrent.RunnableFuture;
 
 /**
  * Default implementation of OperatorStateStore that provides the ability to make snapshots.
+ *
+ * <p>对于所有的Operator State，都是存储在TaskManager的堆内存中的，底层的实现分别对应了ArrayList和HashMap。
  */
 @Internal
 public class DefaultOperatorStateBackend implements OperatorStateBackend {
@@ -239,6 +241,9 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 		return snapshotRunner;
 	}
 
+	/** 去除掉缓存相关的代码, 这里的逻辑非常清晰。
+	 * 就是对Map<String, PartitionableListState<?>>的插入和获取操作，PartitionableListState是ListState的具体实现。
+	 * Union ListState和普通ListState在底层实现上的区别就在于元信息的不同 */
 	private <S> ListState<S> getListState(
 			ListStateDescriptor<S> stateDescriptor,
 			OperatorStateHandle.Mode mode) throws StateMigrationException {
@@ -264,11 +269,13 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 		stateDescriptor.initializeSerializerUnlessSet(getExecutionConfig());
 		TypeSerializer<S> partitionStateSerializer = Preconditions.checkNotNull(stateDescriptor.getElementSerializer());
 
+		// 获取状态
 		@SuppressWarnings("unchecked")
 		PartitionableListState<S> partitionableListState = (PartitionableListState<S>) registeredOperatorStates.get(name);
 
 		if (null == partitionableListState) {
 			// no restored state for the state name; simply create new state holder
+			// 状态不存在，创建一个新的状态
 
 			partitionableListState = new PartitionableListState<>(
 				new RegisteredOperatorStateBackendMetaInfo<>(
@@ -279,6 +286,7 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 			registeredOperatorStates.put(name, partitionableListState);
 		} else {
 			// has restored state; check compatibility of new state access
+			// 状态已经存在，检查是否兼容
 
 			checkStateNameAndMode(
 					partitionableListState.getStateMetaInfo().getName(),

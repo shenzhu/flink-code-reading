@@ -290,6 +290,9 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 				stateDesc.getClass(), this.getClass());
 			throw new FlinkRuntimeException(message);
 		}
+		// 要创建一个InternalKVState, 首先需要获得一个 StateTable，然后通过StateFactory接口创建
+		// InternalKVState。具体的状态的创建分别对应
+		// HeapValueState::create, HeapListState::create, HeapMapState::create, HeapAggregatingState::create, HeapReducingState::create
 		StateTable<K, N, SV> stateTable = tryRegisterStateTable(
 			namespaceSerializer, stateDesc, getStateSnapshotTransformFactory(stateDesc, snapshotTransformFactory));
 		return stateFactory.createState(stateDesc, stateTable, getKeySerializer());

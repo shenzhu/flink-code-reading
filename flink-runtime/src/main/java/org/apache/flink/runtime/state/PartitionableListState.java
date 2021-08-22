@@ -31,6 +31,9 @@ import java.util.List;
 /**
  * Implementation of operator list state.
  *
+ * <p>对于Operator State而言，ListState的具体实现是PartitionableListState。
+ * Union ListState和普通ListState在底层实现上的区别就在于元信息的不同。
+ *
  * @param <S> the type of an operator state partition.
  */
 public final class PartitionableListState<S> implements ListState<S> {

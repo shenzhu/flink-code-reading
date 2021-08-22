@@ -29,6 +29,10 @@ import java.util.stream.Stream;
 /**
  * A keyed state backend provides methods for managing keyed state.
  *
+ * <p>KeyedStateBackend继承了KeyedStateFactory和PriorityQueueSetFactory接口。
+ * 和OperatorStateBackend不同，KeyedStateBackend有不同的实现，分别对应不同的状态存储后端。
+ * AbstractKeyedStateBackend为KeyedStateBackend提供了基础的实现，是所有KeyedStateBackend的抽象父类。
+ *
  * @param <K> The key by which state is keyed.
  */
 public interface KeyedStateBackend<K>
@@ -107,6 +111,12 @@ public interface KeyedStateBackend<K>
 	 * TODO: NOTE: This method does a lot of work caching / retrieving states just to update the namespace.
 	 *       This method should be removed for the sake of namespaces being lazily fetched from the keyed
 	 *       state backend, or being set on the state directly.
+	 *
+	 * <p>状态实际上是和(namespace, name)这两个值相对应的。
+	 * 它的主要应用场景是在窗口中，比如我需要在窗口中使用状态，这个状态是和具体的窗口相关联的，
+	 * 假如没有namespace的存在，我们要如何获取窗口间互相独立的状态呢？有了namespace，把窗口作为namespace，这个问题自然迎刃而解了。
+	 * 注意，只有无法合并的窗口才可以这样使用，如果窗口可以合并(如session window)，无法保证namespace的不变性，
+	 * 自然不能这样使用。
 	 *
 	 * @param stateDescriptor The identifier for the state. This contains name and can create a default state value.
 	 *

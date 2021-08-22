@@ -24,6 +24,15 @@ import javax.annotation.Nonnull;
 
 /**
  * Base class for all registered state in state backends.
+ *
+ * <p>每个State都有一个关联的元信息，RegisteredStateMetaInfoBase是所有状态元信息的抽象父类，
+ * 元信息中保存了状态的名称，状态的序列化器等信息。
+ *
+ * <p>其中RegisteredOperatorStateBackendMetaInfo和RegisteredBroadcastStateBackendMetaInfo分别对应
+ * ListState和BroadcastState的元信息，它们都有一个成员变量OperatorStateHandle.Mode assignmentMode;
+ * 即任务恢复时状态的分配模式。对ListState，其分配模式为SPLIT_DISTRIBUTE；对Union ListState，其分配模式为 UNION;
+ * 对BroadCastState，其分配模式为 BROADCAST。
+ *
  */
 public abstract class RegisteredStateMetaInfoBase {
 

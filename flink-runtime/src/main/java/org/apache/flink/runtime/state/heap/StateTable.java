@@ -44,6 +44,13 @@ import java.util.stream.StreamSupport;
  * Base class for state tables. Accesses to state are typically scoped by the currently active key, as provided
  * through the {@link InternalKeyContext}.
  *
+ * <p>StateTable有三个类型参数，分别对应key的类型，namespace的类型，以及value的类型。
+ * 可以简单地把StateTable理解成(key，namespace) -> Value这样的存储形式。
+ * StateTable有两个具体的实现类，非别为NestedMapsStateTable和CopyOnWriteStateTable。
+ * 这两个类分别对应同步和异步模式checkpoint的情况。其中NestedMapsStateTable对应同步checkpoint的情况，
+ * 不支持异步快照；而CopyOnWriteStateTable对应异步checkpoint的情况。
+ * 顾名思义，它的底层提供了copy-on-write结构，因而可以支持异步并发的操作。
+ *
  * @param <K> type of key
  * @param <N> type of namespace
  * @param <S> type of state

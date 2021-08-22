@@ -39,6 +39,11 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of KeyedStateStore that currently forwards state registration to a {@link RuntimeContext}.
+ *
+ * <p>KeyedStateStore定义了用于创建和管理托管keyed state的方法，分别对应ValueState, ListState，ReducingState,
+ * AggregatingState以及MapState。
+ * 相比于operator state, Keyed state的管理要更复杂一些, KeyedStateStore接口的具体实现是DefaultKeyedStateStore,
+ * DefaultKeyedStateStore拥有KeyedStateBackend的引用，所有的状态获取的方法实际上都由KeyedStateBackend来完成。
  */
 public class DefaultKeyedStateStore implements KeyedStateStore {
 
