@@ -83,6 +83,11 @@ import static org.apache.flink.util.Preconditions.checkState;
  * the execution of the {@link StreamTask}, by pulling the records from network inputs and/or source
  * inputs and pushing produced records to the remaining chained operators.
  *
+ * <p>JobGraph在JobManager中进一步被转换为可供调度的并行化版本的ExecutionGraph, 其中JobVertex被展开为并行化版本的
+ * ExecutionVertex，每一个ExecutionVertex对应JobVertex的一个并行子任务，它的每一次调度对应一个Execution，
+ * 即TaskManager中的一个Task。所以一个Task运行期间的主要处理逻辑对应一个OperatorChain，
+ * 这个OperatorChain可能包含多个Operator，也可能只有一个Operator。
+ *
  * @param <OUT> The type of elements accepted by the chain, i.e., the input type of the chain's
  *              main operator.
  */
@@ -152,6 +157,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 		// we iterate through all the out edges from this job vertex and create a stream output
 		List<StreamEdge> outEdgesInOrder = configuration.getOutEdgesInOrder(userCodeClassloader);
 		Map<StreamEdge, RecordWriterOutput<?>> streamOutputMap = new HashMap<>(outEdgesInOrder.size());
+		// 所有的对外输出遍，这里是对外输出，不包含内部operator之间的数据传输
 		this.streamOutputs = new RecordWriterOutput<?>[outEdgesInOrder.size()];
 
 		// from here on, we need to make sure that the output writers are shut down again on failure
@@ -161,6 +167,7 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>> implements Strea
 
 			// we create the chain of operators and grab the collector that leads into the chain
 			List<StreamOperatorWrapper<?, ?>> allOpWrappers = new ArrayList<>(chainedConfigs.size());
+			// 递归调用，为所有的Operator创建output
 			this.mainOperatorOutput = createOutputCollector(
 				containingTask,
 				configuration,

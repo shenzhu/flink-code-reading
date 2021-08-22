@@ -124,6 +124,11 @@ import static org.apache.flink.util.Preconditions.checkState;
  * may even result in distributed deadlocks (unless carefully avoided). We therefore use atomic state updates and
  * occasional double-checking to ensure that the state after a completed call is as expected, and trigger correcting
  * actions if it is not. Many actions are also idempotent (like canceling).
+ *
+ * <p>Execution是ExecutionVertex的一次执行，在调度的时候会先生成对任务的描述TaskDeploymentDescription,
+ * TaskDeploymentDescription包含了对输入的描述InputGateDeploymentDescriptor, 对输出的描述ResultPartitionDeploymentDescriptor,
+ * 以及保存了这个Task中运行的所有算子运行时信息的TaskInformation和JobInformation。
+ * 生成了TaskDeploymentDescription通过RPC调用提交给TaskExecutor执行。
  */
 public class Execution implements AccessExecution, Archiveable<ArchivedExecution>, LogicalSlot.Payload {
 
@@ -734,8 +739,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 					"Rescaling from unaligned checkpoint is not yet supported.");
 			}
 
-			/*TODO 将IntermediateResultPartition转化成ResultPartition
-			*  将ExecutionEdge转化成InputCHannelDeploymentDescriptor(最终会在执行时转化为InputGate)*/
+			/** 将IntermediateResultPartition转化成ResultPartition
+			*  将ExecutionEdge转化成InputCHannelDeploymentDescriptor(最终会在执行时转化为InputGate) */
 			final TaskDeploymentDescriptor deployment = TaskDeploymentDescriptorFactory
 				.fromExecutionVertex(vertex, attemptNumber)
 				.createDeploymentDescriptor(

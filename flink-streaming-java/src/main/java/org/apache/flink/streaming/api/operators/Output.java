@@ -30,6 +30,8 @@ import org.apache.flink.util.OutputTag;
  * of this interface that can be used to emit elements and other messages, such as barriers
  * and watermarks, from an operator.
  *
+ * <p>Output接口继承自Collector接口，用于接受Operator提交的数据.
+ *
  * @param <T> The type of the elements that can be emitted.
  */
 @PublicEvolving

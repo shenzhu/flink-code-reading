@@ -53,10 +53,12 @@ public class SchedulingUtils {
 			final ExecutionGraph executionGraph) {
 
 		switch (scheduleMode) {
+			// 只运行source，其他的子任务由source进行通知
 			case LAZY_FROM_SOURCES:
 			case LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST:
 				return scheduleLazy(vertices, executionGraph);
 
+			// 所有的子任务逗立即进行调度，这是streaming采用的模式
 			case EAGER:
 				return scheduleEager(vertices, executionGraph);
 
@@ -101,6 +103,9 @@ public class SchedulingUtils {
 
 	/**
 	 * Schedule vertices eagerly. That means all vertices will be scheduled at once.
+	 *
+	 * <p>在调度执行的时候，首先所有的子任务都需要先向Scheduler申请slot资源,
+	 * 当所有需要调度的子任务都分配到slot资源后，才正式开始调度任务。
 	 *
 	 * @param vertices Topologically sorted vertices to schedule.
 	 * @param executionGraph The graph the given vertices belong to.

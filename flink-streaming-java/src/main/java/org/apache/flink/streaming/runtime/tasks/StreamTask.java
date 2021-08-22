@@ -140,6 +140,24 @@ import static org.apache.flink.runtime.concurrent.FutureUtils.assertNoException;
  * {@code StreamOperator} must be synchronized on this lock object to ensure that no methods
  * are called concurrently.
  *
+ * <p>每一个StreamNode在添加到StreamGraph的时候都会有一个关联的jobVertexClass属性，这个属性就是该StreamNode对应的StreamTask类型;
+ * 对于一个OperatorChain而言，它所对应的StreamTask就是其head operator对应的StreamTask。
+ *
+ * <p>StreamTask完整的生命周期包括
+ * <ol>
+ *     <li>创建状态存储后端，为OperatorChain中的所有算子提供状态</li>
+ *     <li>加载OperatorChain中的所有算子</li>
+ *     <li>所有的operator调用setup</li>
+ *     <li>task相关的初始化操作</li>
+ *     <li>所有operator调用initializeState初始化状态</li>
+ *     <li>所有的operator调用open</li>
+ *     <li>run方法循环处理数据</li>
+ *     <li>所有operator调用close</li>
+ *     <li>所有operator调用dispose</li>
+ *     <li>通用的cleanup操作</li>
+ *     <li>task相关的cleanup操作</li>
+ * </ol>
+ *
  * @param <OUT>
  * @param <OP>
  */

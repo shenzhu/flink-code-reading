@@ -874,6 +874,8 @@ public class ExecutionGraph implements AccessExecutionGraph {
 		}
 	}
 
+	/** 当JobGraph被提交到JobMaster之后，首先会生成ExecutionGraph，这是任务调度时使用的调度执行图。
+	 * 然后通过ExecutionGraph#scheduleForExecution方法开始调度各个子任务。 */
 	public void scheduleForExecution() throws JobException {
 
 		assertRunningInJobMasterMainThread();

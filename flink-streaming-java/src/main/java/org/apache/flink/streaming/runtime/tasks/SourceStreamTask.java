@@ -46,6 +46,8 @@ import java.util.concurrent.Future;
  * and the emission of elements must happen in the same block of code that is protected by the
  * synchronized block.
  *
+ * <p>SourceStreamTask负责为下游任务生成数据，因此它没有输入，只负责对外输出记录。
+ *
  * @param <OUT> Type of the output elements of this source.
  * @param <SRC> Type of the source function for the stream source operator
  * @param <OP> Type of the stream source operator
@@ -81,6 +83,7 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 		// than the trigger
 		SourceFunction<?> source = mainOperator.getUserFunction();
 		if (source instanceof ExternallyInducedSource) {
+			// 如果用户提供的SourceFunction是ExternallyInducedSource，则需要创建一个CheckpointTrigger对象提供给ExternallyInducedSource。
 			externallyInducedCheckpoints = true;
 
 			ExternallyInducedSource.CheckpointTrigger triggerHook = new ExternallyInducedSource.CheckpointTrigger() {

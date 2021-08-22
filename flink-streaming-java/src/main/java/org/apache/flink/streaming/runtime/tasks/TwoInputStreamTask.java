@@ -33,6 +33,9 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * A {@link StreamTask} for executing a {@link TwoInputStreamOperator} and supporting
  * the {@link TwoInputStreamOperator} to select input for reading.
+ *
+ * <p>TwoInputStreamTask和OneInputStreamTask的处理逻辑类似，只是要对两个上游的输入分别调用TwoInputStreamOperator.processElement1
+ * 和twoInputStreamOperator.processElement2进行处理。
  */
 @Internal
 public class TwoInputStreamTask<IN1, IN2, OUT> extends AbstractTwoInputStreamTask<IN1, IN2, OUT> {

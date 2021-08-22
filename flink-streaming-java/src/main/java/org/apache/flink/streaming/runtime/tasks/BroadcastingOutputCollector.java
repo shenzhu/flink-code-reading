@@ -29,6 +29,12 @@ import org.apache.flink.util.XORShiftRandom;
 
 import java.util.Random;
 
+/**
+ * BroadcastingOutputCollector封装了一组Output, 即Output<StreamRecord<T>>[] outputs, 在接收到StreamRecord时，
+ * 会将消息提交到内部所有的Output中。
+ * BroadcastingOutputCollector主要用在当前算子有多个下游算子的情况下。
+ * 与此对应的还有一个CopyingBroadcastingOutputCollector。
+ * */
 class BroadcastingOutputCollector<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
 
 	protected final Output<StreamRecord<T>>[] outputs;

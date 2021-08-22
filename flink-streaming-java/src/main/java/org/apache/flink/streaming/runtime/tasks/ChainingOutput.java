@@ -36,9 +36,16 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+/**
+ * 通过在ChainingOutput中保存下游StreamOperator的引用，ChainingOutput直接将对象的引用传递给下游算子。
+ * 但是ExecutionConfig有一个配置项，即objectReuse，在默认情况下会禁止对象重用。
+ * 如果不允许对象重用，则不会使用ChainingOutput，而是会使用CopyingChainingOutput。
+ * 顾名思义，它和ChainingOutput的区别在于，它会对记录进行拷贝后传递给下游算子
+ * */
 class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
 	private static final Logger LOG = LoggerFactory.getLogger(ChainingOutput.class);
 
+	// 这是下游算子
 	protected final Input<T> input;
 	protected final Counter numRecordsIn;
 	protected final WatermarkGauge watermarkGauge = new WatermarkGauge();
@@ -90,6 +97,7 @@ class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>>
 			return;
 		}
 
+		// 调用下游算子的processElement方法
 		pushToOperator(record);
 	}
 

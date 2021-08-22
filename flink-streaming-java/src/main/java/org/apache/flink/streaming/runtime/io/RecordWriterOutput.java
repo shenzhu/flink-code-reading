@@ -41,6 +41,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * Implementation of {@link Output} that sends data using a {@link RecordWriter}.
+ *
+ * <p>对于位于OperatorChain末尾的算子，它处理过的记录需要被其它Task消费，因此它的记录需要被写入ResultPartition。
+ * 因此，Flink提供了RecordWriterOutput，它也实现了WatermarkGaugeExposingOutput，但是它是通过RecordWriter
+ * 输出接收到的消息记录。
+ * RecordWriter是ResultPartitionWriter的一层包装，提供了将记录序列化到buffer中的功能。
+ *
  */
 @Internal
 public class RecordWriterOutput<OUT> implements WatermarkGaugeExposingOutput<StreamRecord<OUT>> {

@@ -132,6 +132,26 @@ import static org.apache.flink.util.Preconditions.checkState;
  * produce (if any).
  *
  * <p>Each Task is run by one dedicated thread.
+ *
+ * <p>当TaskDeploymentDescription被提交到TaskExecutor后，TaskExecutor会据此创建一个Task对象，并在构造函数中完成一些初始化操作，
+ * 如根据InputGateDeploymentDescriptor创建InputGate, 根据ResultPartitionDeploymentDescriptor创建ResultPartition。
+ *
+ * <p>Task实现了Runnable接口，每个Task都会在一个单独的线程中运行, Task的启动流程包括
+ * <ol>
+ *     <li>首先完成状态的初始化ExecutionState.CREATED -> ExecutionState.DEPLOYING</li>
+ *     <li>任务装配</li>
+ *     <ul>
+ *         <li>通过反序列化得到ExecutionConfig，从ExecutionConfig中可以的到所有算子相关的信息</li>
+ *         <li>向网络栈中注册Task, 为ResultPartition和InputGate分配缓冲池</li>
+ *         <li>初始化用户代码，通过反射得到AbstractInvokable(StreamTask)实例</li>
+ *     </ul>
+ *     <li>执行任务</li>
+ *     <ul>
+ *         <li>状态转换ExecutionState.DEPLOYING -> ExecutionState.RUNNING</li>
+ *         <li>调用AbstractInvokable.invoke()启动任务</li>
+ *     </ul>
+ * </ol>
+ *
  */
 public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionProducerStateProvider, CheckpointListener, BackPressureSampleableTask {
 
@@ -697,7 +717,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 			executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
 			// now load and instantiate the task's invokable code
-			/*TODO 加载和实例化task的可执行代码*/
+			// nameOfInvokableClass是JobVertex的invokableClassName，
+			// 每一个StreamNode在添加的时候都会有一个jobVertexClass 属性
+			// 对于一个operator chain，就是head operator对应的invokableClassName，见 StreamingJobGraphGenerator.createChain
+			// 通过反射创建AbstractInvokable对象
+			// 对于Stream任务而言，就是StreamTask的子类，SourceStreamTask、OneInputStreamTask、TwoInputStreamTask 等
 			invokable = loadAndInstantiateInvokable(userCodeClassLoader.asClassLoader(), nameOfInvokableClass, env);
 
 			// ----------------------------------------------------------------
@@ -720,7 +744,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 			executingThread.setContextClassLoader(userCodeClassLoader.asClassLoader());
 
 			// run the invokable
-			/*TODO 执行代码(invokable即为operator对象的instance)*/
+			// 执行代码(invokable即为operator对象的instance)
 			invokable.invoke();
 
 			// make sure, we enter the catch block if the task leaves the invoke() method due

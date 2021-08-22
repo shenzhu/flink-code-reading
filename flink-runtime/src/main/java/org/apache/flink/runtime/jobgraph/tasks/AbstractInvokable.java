@@ -60,6 +60,11 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * checkpointing needs to override {@link #triggerCheckpointAsync(CheckpointMetaData, CheckpointOptions, boolean)},
  * {@link #triggerCheckpointOnBarrier(CheckpointMetaData, CheckpointOptions, CheckpointMetricsBuilder)},
  * {@link #abortCheckpointOnBarrier(long, Throwable)} and {@link #notifyCheckpointCompleteAsync(long)}.
+ *
+ * <p>AbstractInvokable是Task执行的主要逻辑，也是所有被执行的任务的基类，包括Streaming模式和Batch模式。
+ * 在Streaming模式下，所有任务都继承自StreamTask, StreamTask的子类包括SourceStreamTask, OneInputStreamTask, TwoInputStreamTask,
+ * 以及用于迭代模式下的StreamIterationHead和StreamIterationTail。
+ *
  */
 public abstract class AbstractInvokable {
 
