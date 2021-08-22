@@ -88,8 +88,13 @@ public class PendingCheckpoint implements Checkpoint {
 
 	private final long checkpointTimestamp;
 
+	// 已经接收到Ack的算子的状态句柄
 	private final Map<OperatorID, OperatorState> operatorStates;
 
+	// 需要Ack但还没有接收到的 Task
+	// 每当接收到一个Ack消息时，PendingCheckpoint就从notYetAcknowledgedTasks中移除对应的Task，
+	// 并保存Ack携带的状态句柄保存。
+	// 当notYetAcknowledgedTasks为空时，表明所有的Ack消息都接收到了。
 	private final Map<ExecutionAttemptID, ExecutionVertex> notYetAcknowledgedTasks;
 
 	private final Set<OperatorID> notYetAcknowledgedOperatorCoordinators;

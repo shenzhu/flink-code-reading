@@ -138,6 +138,8 @@ class HeapSnapshotStrategy<K>
 				metaInfoSnapshots,
 				!Objects.equals(UncompressedStreamCompressionDecorator.INSTANCE, keyGroupCompressionDecorator));
 
+		// 创建CheckpointStreamWithResultProvider
+		// 根据是否启用本地状态恢复创建不同的CheckpointStreamWithResultProvider
 		final SupplierWithException<CheckpointStreamWithResultProvider, Exception> checkpointStreamSupplier =
 
 			localRecoveryConfig.isLocalRecoveryEnabled() && !checkpointOptions.getCheckpointType().isSavepoint() ?

@@ -211,6 +211,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 		return channelStateWriter;
 	}
 
+	/** 对于Task和StreamTask进行checkpointing时的具体实现 */
 	@Override
 	public void checkpointState(
 			CheckpointMetaData metadata,
@@ -248,6 +249,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 		operatorChain.prepareSnapshotPreBarrier(metadata.getCheckpointId());
 
 		// Step (2): Send the checkpoint barrier downstream
+		// 将checkpoint barrier发送给下游处理
 		operatorChain.broadcastEvent(
 			new CheckpointBarrier(metadata.getCheckpointId(), metadata.getTimestamp(), options),
 			options.isUnalignedCheckpoint());
@@ -260,6 +262,9 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 
 		// Step (4): Take the state snapshot. This should be largely asynchronous, to not impact progress of the
 		// streaming topology
+		// 对state进行snapshot，这一步应该是异步操作
+		// 检查点快照的过程被封装为CheckpointingOperation，由于每一个StreamTask可能包含多个算子，
+		// 因而内部使用一个Map维护OperatorID -> OperatorSnapshotFutures的关系。
 
 		Map<OperatorID, OperatorSnapshotFutures> snapshotFutures = new HashMap<>(operatorChain.getNumberOfOperators());
 		try {
@@ -491,6 +496,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 		try {
 			for (StreamOperatorWrapper<?, ?> operatorWrapper : operatorChain.getAllOperators(true)) {
 				if (!operatorWrapper.isClosed()) {
+					// 对每一个算子调用buildOperatorSnapshotFutures
 					operatorSnapshotsInProgress.put(
 							operatorWrapper.getStreamOperator().getOperatorID(),
 							buildOperatorSnapshotFutures(
@@ -600,6 +606,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 			CheckpointStreamFactory storageLocation,
 			Supplier<Boolean> isCanceled) throws Exception {
 		try {
+			// 调用算子的snapshotState，返回结果是一个runnable future
 			return op.snapshotState(
 				checkpointMetaData.getCheckpointId(),
 				checkpointMetaData.getTimestamp(),

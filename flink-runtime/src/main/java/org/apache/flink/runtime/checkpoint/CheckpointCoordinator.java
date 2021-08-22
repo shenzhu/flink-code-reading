@@ -1220,6 +1220,9 @@ public class CheckpointCoordinator {
 	/**
 	 * Restores the latest checkpointed state.
 	 *
+	 * <p>JobMaster在创建ExecutionGraph后会尝试恢复状态到最近一次成功的checkpoint，
+	 * 或者加载SavePoint，最终都会调用这个方法。
+	 *
 	 * @param tasks Map of job vertices to restore. State for these vertices is
 	 * restored via {@link Execution#setInitialState(JobManagerTaskRestore)}.
 	 * @param errorIfNoCheckpoint Fail if no completed checkpoint is available to

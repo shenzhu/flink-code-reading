@@ -178,6 +178,9 @@ public interface CheckpointStreamWithResultProvider extends Closeable {
 			CheckpointStreamFactory.CheckpointStateOutputStream secondaryOut =
 				new FileBasedStateOutputStream(outPath.getFileSystem(), outPath);
 
+			// 有两个输出流，primary和secondary，secondary对应本地存储
+			// 所以在启用本地状态存储的情况下，会创建两个输出流，其中primaryOut对应外部存储，
+			// 而secondaryOut对应本地存储。状态会输出两份。本地状态句柄会存储在TaskLocalStateStore中。
 			return new CheckpointStreamWithResultProvider.PrimaryAndSecondaryStream(primaryOut, secondaryOut);
 		} catch (IOException secondaryEx) {
 			LOG.warn("Exception when opening secondary/local checkpoint output stream. " +

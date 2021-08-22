@@ -244,6 +244,9 @@ public abstract class AbstractStreamOperator<OUT>
 		final CloseableRegistry streamTaskCloseableRegistry =
 			Preconditions.checkNotNull(containingTask.getCancelables());
 
+		// 创建StreamOperatorStateContext，这一步会进行状态的恢复，
+		// 这样operatorStateBackend和keyedStateBackend就可以恢复到到最后一次checkpoint的状态
+		// timeServiceManager也会恢复
 		final StreamOperatorStateContext context =
 			streamTaskStateManager.streamOperatorStateContext(
 				getOperatorID(),

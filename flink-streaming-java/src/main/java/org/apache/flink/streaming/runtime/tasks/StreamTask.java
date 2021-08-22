@@ -920,6 +920,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		subtaskCheckpointCoordinator.abortCheckpointOnBarrier(checkpointId, cause, operatorChain);
 	}
 
+	/** 先向下游发送barrier并存储检查点快照 */
 	private boolean performCheckpoint(
 			CheckpointMetaData checkpointMetaData,
 			CheckpointOptions checkpointOptions,

@@ -622,14 +622,17 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			ResultPartitionConsumableNotifier resultPartitionConsumableNotifier = jobManagerConnection.getResultPartitionConsumableNotifier();
 			PartitionProducerStateChecker partitionStateChecker = jobManagerConnection.getPartitionStateChecker();
 
+			// 本地状态存储
 			final TaskLocalStateStore localStateStore = localStateStoresManager.localStateStoreForSubtask(
 				jobId,
 				tdd.getAllocationId(),
 				taskInformation.getJobVertexId(),
 				tdd.getSubtaskIndex());
 
+			// 由JobManager分配的用于恢复的状态
 			final JobManagerTaskRestore taskRestore = tdd.getTaskRestore();
 
+			// 创建TaskStateManager
 			final TaskStateManager taskStateManager = new TaskStateManagerImpl(
 				jobId,
 				tdd.getExecutionAttemptId(),
@@ -644,6 +647,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				throw new TaskSubmissionException("Could not submit task.", e);
 			}
 
+			// 创建并启动Task
 			Task task = new Task(
 				jobInformation,
 				taskInformation,

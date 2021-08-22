@@ -140,6 +140,8 @@ public class StreamTaskStateInitializerImpl implements StreamTaskStateInitialize
 
 		final String operatorIdentifierText = operatorSubtaskDescription.toString();
 
+		// 通过TaskStateManager.prioritizedOperatorState()方法获得每个Operator需要恢复的状态句柄
+		// 然后使用获得的状态句柄创建并还原state backend和timer
 		final PrioritizedOperatorSubtaskState prioritizedOperatorSubtaskStates =
 			taskStateManager.prioritizedOperatorState(operatorID);
 

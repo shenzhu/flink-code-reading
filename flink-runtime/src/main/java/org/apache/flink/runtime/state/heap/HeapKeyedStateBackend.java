@@ -69,6 +69,9 @@ import java.util.stream.Stream;
  * A {@link AbstractKeyedStateBackend} that keeps state on the Java Heap and will serialize state to
  * streams provided by a {@link CheckpointStreamFactory} upon checkpointing.
  *
+ * <p>在存储检查点快照时，在Task所在的TaskManager本地文件系统中存储一份副本，这样在进行状态恢复时可以优先从本地状态进行恢复，
+ * 从而减少网络数据传输的开销。本地状态存储仅针对keyed state，HeapKeyedStateBackend就实现了这个功能。
+ *
  * @param <K> The key by which state is keyed.
  */
 public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {

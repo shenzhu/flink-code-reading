@@ -90,6 +90,10 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
 		this.asyncExceptionHandler = checkNotNull(asyncExceptionHandler);
 	}
 
+	/** 异步执行阶段被封装为AsyncCheckpointRunnable。
+	 * 主要的操作包括
+	 * 1) 执行同步阶段创建的FutureTask
+	 * 2) 完成后向CheckpointCoordinator发送Ack响应 */
 	@Override
 	public void run() {
 		final long asyncStartNanos = System.nanoTime();
@@ -105,6 +109,9 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
 			TaskStateSnapshot jobManagerTaskOperatorSubtaskStates = new TaskStateSnapshot(operatorSnapshotsInProgress.size());
 			TaskStateSnapshot localTaskOperatorSubtaskStates = new TaskStateSnapshot(operatorSnapshotsInProgress.size());
 
+			// 完成每一个 operator 的状态写入
+			// 如果是同步 checkpoint，那么在此之前状态已经写入完成
+			// 如果是异步 checkpoint，那么在这里才会写入状态
 			long bytesPersistedDuringAlignment = 0;
 			for (Map.Entry<OperatorID, OperatorSnapshotFutures> entry : operatorSnapshotsInProgress.entrySet()) {
 
@@ -135,6 +142,7 @@ final class AsyncCheckpointRunnable implements Runnable, Closeable {
 
 			if (asyncCheckpointState.compareAndSet(AsyncCheckpointState.RUNNING, AsyncCheckpointState.COMPLETED)) {
 
+				// 报告snapshot完成
 				reportCompletedSnapshotStates(
 					jobManagerTaskOperatorSubtaskStates,
 					localTaskOperatorSubtaskStates,
