@@ -191,6 +191,10 @@ public class WindowOperatorBuilder<T, K, W extends Window> {
 		if (evictor != null) {
 			return buildEvictingWindowOperator(new InternalIterableWindowFunction<>(new AggregateApplyWindowFunction<>(aggregateFunction, windowFunction)));
 		} else {
+			// 注意，这里不再是ListState，而是支持聚合操作的AggregatingState，其聚合函数就是用户代码提供的。
+			// 可以看出来，如果使用了增量聚合函数，那么窗口的状态就不再是以ListState的形式保存窗口中的所有元素，
+			// 而是AggregatingState。
+			// 这样，每当窗口中新消息到达时，在将消息添加到状态中的同时就会触发聚合函数的计算，这样在状态中就只需要保存聚合后的状态即可。
 			AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>(WINDOW_STATE_NAME,
 				aggregateFunction, accumulatorType.createSerializer(config));
 
@@ -225,12 +229,13 @@ public class WindowOperatorBuilder<T, K, W extends Window> {
 		return apply(new InternalIterableWindowFunction<>(function));
 	}
 
+	/** ProcessWindowFunction和WindowFunction会被包装成InternalWindowFunction的子类 */
 	public <R> WindowOperator<K, T, ?, R, W> process(ProcessWindowFunction<T, R, K, W> function) {
 		Preconditions.checkNotNull(function, "ProcessWindowFunction cannot be null");
 		return apply(new InternalIterableProcessWindowFunction<>(function));
 	}
 
-	private  <R> WindowOperator<K, T, ?, R, W> apply(InternalWindowFunction<Iterable<T>, R, K, W> function) {
+	private <R> WindowOperator<K, T, ?, R, W> apply(InternalWindowFunction<Iterable<T>, R, K, W> function) {
 		if (evictor != null) {
 			return buildEvictingWindowOperator(function);
 		} else {
@@ -261,8 +266,10 @@ public class WindowOperatorBuilder<T, K, W extends Window> {
 		TypeSerializer<StreamRecord<T>> streamRecordSerializer =
 			(TypeSerializer<StreamRecord<T>>) new StreamElementSerializer(inputType.createSerializer(config));
 
+		// 即便是使用了增量聚合函数，状态仍然是以`ListState`形式保存的
 		ListStateDescriptor<StreamRecord<T>> stateDesc = new ListStateDescriptor<>(WINDOW_STATE_NAME, streamRecordSerializer);
 
+		// 生成EvictingWindowOperator
 		return new EvictingWindowOperator<>(windowAssigner,
 			windowAssigner.getWindowSerializer(config),
 			keySelector,

@@ -24,6 +24,10 @@ import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 
 /**
  * An element in a data stream. Can be a record or a Watermark.
+ *
+ * <p>Flink内部使用StreamRecord来表示需要被处理的一条消息，使用Watermark来表示一个水位线的标记。
+ * Watermark和StreamRecord一样，需要在上下游的算子之间进行流动，它们拥有共同的父类StreamElement。
+ *
  */
 @Internal
 public abstract class StreamElement {

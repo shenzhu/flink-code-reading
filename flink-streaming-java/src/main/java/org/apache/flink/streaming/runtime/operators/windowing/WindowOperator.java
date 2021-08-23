@@ -239,9 +239,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 
 		// create the typed and helper states for merging windows
+		// 在一些情况下，窗口的边界不是固定的，可能会随着消息的到达不断进行调整，例如session window，这就情况下就会发生窗口的合并
 		if (windowAssigner instanceof MergingWindowAssigner) {
 
 			// store a typed reference for the state of merging windows - sanity check
+			// 窗口状态必须是可以合并的
 			if (windowState instanceof InternalMergingState) {
 				windowMergingState = (InternalMergingState<K, W, IN, ACC, ACC>) windowState;
 			}
@@ -264,6 +266,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 					new ListStateDescriptor<>("merging-window-set", tupleSerializer);
 
 			// get the state that stores the merging sets
+			// 创建一个ListState<Tuple2<W,W>>用于保存合并的窗口集合
 			mergingSetsState = (InternalListState<K, VoidNamespace, Tuple2<W, W>>)
 					getOrCreateKeyedState(VoidNamespaceSerializer.INSTANCE, mergingSetsStateDescriptor);
 			mergingSetsState.setCurrentNamespace(VoidNamespace.INSTANCE);
@@ -288,6 +291,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		windowAssignerContext = null;
 	}
 
+	/**
+	 * 当消息到达时，在窗口算子中的处理流程大致如下：
+	 *
+	 * <ol>
+	 * 	<li>通过 WindowAssigner确定消息所在的窗口(可能属于多个窗口)</li>
+	 *  <li>将消息加入到对应窗口的状态中</li>
+	 *  <li>根据Trigger.onElement确定是否应该触发窗口结果的计算，如果使用InternalWindowFunction对窗口进行处理</li>
+	 *  <li>注册一个定时器，在窗口结束时清理窗口状态</li>
+	 *  <li>如果消息太晚到达，提交到side output中</li>
+	 * </ol>*/
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
 		final Collection<W> elementWindows = windowAssigner.assignWindows(
@@ -307,10 +320,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				// is the merged window and we work with that. If we don't merge then
 				// actualWindow == window
 				W actualWindow = mergingWindows.addWindow(window, new MergingWindowSet.MergeFunction<W>() {
+					// 这是合并窗口的回调函数
 					@Override
-					public void merge(W mergeResult,
-							Collection<W> mergedWindows, W stateWindowResult,
-							Collection<W> mergedStateWindows) throws Exception {
+					public void merge(W mergeResult, // 合并后的窗口
+							Collection<W> mergedWindows, // 被合并的窗口
+							W stateWindowResult, // 用作合并后窗口状态的 namespace
+							Collection<W> mergedStateWindows // 被合并的状态的 namespace
+					) throws Exception {
 
 						if ((windowAssigner.isEventTime() && mergeResult.maxTimestamp() + allowedLateness <= internalTimerService.currentWatermark())) {
 							throw new UnsupportedOperationException("The end timestamp of an " +
@@ -330,6 +346,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 						triggerContext.key = key;
 						triggerContext.window = mergeResult;
 
+						// 调用Trigger.onMerger判断是否需要进行触发
 						triggerContext.onMerge(mergedWindows);
 
 						for (W m: mergedWindows) {
@@ -339,6 +356,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 						}
 
 						// merge the merged state windows into the newly resulting state window
+						// 合并窗口状态
 						windowMergingState.mergeNamespaces(stateWindowResult, mergedStateWindows);
 					}
 				});
@@ -355,15 +373,19 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 					throw new IllegalStateException("Window " + window + " is not in in-flight window set.");
 				}
 
+				// 用window作为state的namespace
 				windowState.setCurrentNamespace(stateWindow);
+				// 消息加入到状态中
 				windowState.add(element.getValue());
 
 				triggerContext.key = key;
 				triggerContext.window = actualWindow;
 
+				// 通过Trigger.onElement()判断是否触发窗口结果的计算
 				TriggerResult triggerResult = triggerContext.onElement(element);
 
 				if (triggerResult.isFire()) {
+					// 获取窗口状态
 					ACC contents = windowState.get();
 					if (contents == null) {
 						continue;
@@ -371,9 +393,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 					emitWindowContents(actualWindow, contents);
 				}
 
+				// 是否需要清除窗口状态
 				if (triggerResult.isPurge()) {
 					windowState.clear();
 				}
+				// 注册一个定时器，窗口结束后清理状态
 				registerCleanupTimer(actualWindow);
 			}
 
@@ -415,6 +439,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		// element not handled by any window
 		// late arriving tag has been set
 		// windowAssigner is event time and current timestamp + allowed lateness no less than element timestamp
+		// 迟到的数据
 		if (isSkippedElement && isElementLate(element)) {
 			if (lateDataOutputTag != null){
 				sideOutput(element);

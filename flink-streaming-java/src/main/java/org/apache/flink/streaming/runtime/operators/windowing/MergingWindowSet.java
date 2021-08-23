@@ -59,6 +59,8 @@ public class MergingWindowSet<W extends Window> {
 	 * Mapping from window to the window that keeps the window state. When
 	 * we are incrementally merging windows starting from some window we keep that starting
 	 * window as the state window to prevent costly state juggling.
+	 *
+	 * //这里保存的就是 窗口 -> 窗口状态的namespace 的映射关系
 	 */
 	private final Map<W, W> mapping;
 
@@ -160,6 +162,7 @@ public class MergingWindowSet<W extends Window> {
 		windows.addAll(this.mapping.keySet());
 		windows.add(newWindow);
 
+		// 确定能够合并的窗口，在回调函数中将窗口的合并结果保存在mergeResults
 		final Map<W, Collection<W>> mergeResults = new HashMap<>();
 		windowAssigner.mergeWindows(windows,
 				new MergingWindowAssigner.MergeCallback<W>() {
@@ -177,7 +180,9 @@ public class MergingWindowSet<W extends Window> {
 
 		// perform the merge
 		for (Map.Entry<W, Collection<W>> c: mergeResults.entrySet()) {
+			// 合并后产生的窗口
 			W mergeResult = c.getKey();
+			// 被合并的窗口
 			Collection<W> mergedWindows = c.getValue();
 
 			// if our new window is in the merged windows make the merge result the
@@ -189,17 +194,20 @@ public class MergingWindowSet<W extends Window> {
 
 			// pick any of the merged windows and choose that window's state window
 			// as the state window for the merge result
+			// 从需要被合并的窗口中选择一个作为合并后状态的namespace
 			W mergedStateWindow = this.mapping.get(mergedWindows.iterator().next());
 
 			// figure out the state windows that we are merging
 			List<W> mergedStateWindows = new ArrayList<>();
 			for (W mergedWindow: mergedWindows) {
+				// 移除旧的映射关系
 				W res = this.mapping.remove(mergedWindow);
 				if (res != null) {
 					mergedStateWindows.add(res);
 				}
 			}
 
+			// 新的映射关系
 			this.mapping.put(mergeResult, mergedStateWindow);
 
 			// don't put the target state window into the merged windows
@@ -209,6 +217,7 @@ public class MergingWindowSet<W extends Window> {
 			// i.e. if we are only merging one pre-existing window into itself
 			// without extending the pre-existing window
 			if (!(mergedWindows.contains(mergeResult) && mergedWindows.size() == 1)) {
+				// 调用回调函数进行状态的合并
 				mergeFunction.merge(mergeResult,
 						mergedWindows,
 						this.mapping.get(mergeResult),

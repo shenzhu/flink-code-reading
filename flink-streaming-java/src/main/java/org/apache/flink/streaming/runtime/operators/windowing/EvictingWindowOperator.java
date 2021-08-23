@@ -345,6 +345,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 					return TimestampedValue.from(input);
 				}
 			});
+		// 调用InternalWindowFunction之前
 		evictorContext.evictBefore(recordsWithTimestamp, Iterables.size(recordsWithTimestamp));
 
 		FluentIterable<IN> projectedContents = recordsWithTimestamp
@@ -356,7 +357,9 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 			});
 
 		processContext.window = triggerContext.window;
+		// 调用InternalWindowFunction计算结果
 		userFunction.process(triggerContext.key, triggerContext.window, processContext, projectedContents, timestampedCollector);
+		// 调用InternalWindowFunction之前
 		evictorContext.evictAfter(recordsWithTimestamp, Iterables.size(recordsWithTimestamp));
 
 		//work around to fix FLINK-4369, remove the evicted elements from the windowState.

@@ -37,6 +37,9 @@ import java.io.Serializable;
  * {@link org.apache.flink.streaming.api.windowing.assigners.WindowAssigner}. These panes all
  * have their own instance of the {@code Evictor}.
  *
+ * <p>Flink的窗口操作还提供了一个可选的evictor，允许在调用InternalWindowFunction计算窗口结果之前或之后移除窗口中的元素。
+ * 在这种情况下，就不能对窗口进行增量聚合操作了，窗口内的所有元素必须保存在ListState中，因而对性能会有一定影响。
+ *
  * @param <T> The type of elements that this {@code Evictor} can evict.
  * @param <W> The type of {@link Window Windows} on which this {@code Evictor} can operate.
  */

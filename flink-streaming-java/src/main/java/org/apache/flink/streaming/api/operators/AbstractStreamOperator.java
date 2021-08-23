@@ -599,6 +599,7 @@ public abstract class AbstractStreamOperator<OUT>
 	}
 
 	public void processWatermark(Watermark mark) throws Exception {
+		// 处理watermark
 		if (timeServiceManager != null) {
 			timeServiceManager.advanceWatermark(mark);
 		}

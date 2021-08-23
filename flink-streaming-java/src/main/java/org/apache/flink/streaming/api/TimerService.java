@@ -22,6 +22,8 @@ import org.apache.flink.annotation.PublicEvolving;
 
 /**
  * Interface for working with time and timers.
+ *
+ * <p>Timer提供了一种定时触发器的功能，通过TimerService接口注册timer，触发的回调被封装为Triggerable。
  */
 @PublicEvolving
 public interface TimerService {

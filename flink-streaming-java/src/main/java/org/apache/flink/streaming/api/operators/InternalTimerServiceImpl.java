@@ -41,6 +41,13 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * {@link InternalTimerService} that stores timers on the Java heap.
+ *
+ * <p>在InternalTimeService中注册的timer有两种类型，分别为基于系统时间的和基于事件时间的，
+ * 它使用两个优先级队列分别保存这两种类型的timer。
+ * Timer则被抽象为接口InternalTimer，每个timer有绑定的 key，namespace和触发时间timestamp，
+ * TimerHeapInternalTimer是其具体实现。
+ * InternalTimerServiceImpl内部的两个优先级队列会按照触发时间的大小进行排序。
+ *
  */
 public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 
@@ -203,6 +210,7 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 		if (processingTimeTimersQueue.add(new TimerHeapInternalTimer<>(time, (K) keyContext.getCurrentKey(), namespace))) {
 			long nextTriggerTime = oldHead != null ? oldHead.getTimestamp() : Long.MAX_VALUE;
 			// check if we need to re-schedule our timer to earlier
+			// 如果新加入的timer触发时间早于下一次的触发时间，那么应该重新设置下一次触发时间
 			if (time < nextTriggerTime) {
 				if (nextTimer != null) {
 					nextTimer.cancel(false);
@@ -247,6 +255,8 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 		}
 	}
 
+	/** 当ProcessingTimeService触发InternalTimerServiceImpl.onProcessingTime()回调后，
+	 * 会从优先级队列中取出所有符合条件的触发器，并调用triggerTarget.onProcessingTime(timer)。*/
 	private void onProcessingTime(long time) throws Exception {
 		// null out the timer in case the Triggerable calls registerProcessingTimeTimer()
 		// inside the callback.
@@ -261,10 +271,15 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 		}
 
 		if (timer != null && nextTimer == null) {
+			// 注册下一次的触发任务
 			nextTimer = processingTimeService.registerTimer(timer.getTimestamp(), this::onProcessingTime);
 		}
 	}
 
+	/** Event time timer的触发则依赖于系统当前的watermark。
+	 * 当注册一个Processing time timer的时候，会将对应的timer加入优先级队列中；
+	 * 而一旦watermark上升，InternalTimerServiceImpl.advanceWatermark()方法就会被调用，
+	 * 这时会检查优先级队列中所有触发时间早于当前watermark值的timer，并依次调用triggerTarget.onEventTime(timer)方法 */
 	public void advanceWatermark(long time) throws Exception {
 		currentWatermark = time;
 

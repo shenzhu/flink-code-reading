@@ -195,7 +195,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @see FSDataOutputStream
  */
 @Public
-public abstract class SFileSystem {
+public abstract class FileSystem {
 
 	/**
 	 * The possible write modes. The write mode decides what happens if a file should be created,

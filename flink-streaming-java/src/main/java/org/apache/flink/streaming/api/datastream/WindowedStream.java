@@ -304,6 +304,9 @@ public class WindowedStream<T, K, W extends Window> {
 	 * each element, aggregating values incrementally and keeping the state to one accumulator
 	 * per key and window.
 	 *
+	 * <p>使用ReduceFunction, AggregateFunction或FoldFunction进行在窗口聚合的底层实现是类似的，
+	 * 区别只在于聚合函数的不同。其中AggregateFunction是最通用的函数，我们可以以AggregateFunction为例进行分析。
+	 *
 	 * @param function The aggregation function.
 	 * @return The data stream that is the result of applying the aggregation function to the window.
 	 *
@@ -487,6 +490,10 @@ public class WindowedStream<T, K, W extends Window> {
 	 * <p>Arriving data is incrementally aggregated using the given aggregate function. This means
 	 * that the window function typically has only a single value to process when called.
 	 *
+	 * <p>在直接使用AggregateFunction的情况下，用户代码中无法访问窗口的上下文信息。
+	 * 为了解决这个问题，可以将增量聚合函数和ProcessWindowFunction结合在一起使用，
+	 * 这样在提交窗口计算结果时也可以访问到窗口的上下文信息。
+	 *
 	 * @param aggregateFunction The aggregation function that is used for incremental aggregation.
 	 * @param windowFunction The window function.
 	 * @param accumulatorType Type information for the internal accumulator type of the aggregation function
@@ -595,6 +602,10 @@ public class WindowedStream<T, K, W extends Window> {
 	 *
 	 * <p>Note that this function requires that all data in the windows is buffered until the window
 	 * is evaluated, as the function provides no means of incremental aggregation.
+	 *
+	 * <p>在使用ProcessWindowFunction来对窗口进行操作的一个重要缺陷是，需要把整个窗口内的所有消息全部缓存在ListState中，
+	 * 这无疑会导致性能问题。如果窗口的计算逻辑支持增量聚合操作，那么可以使用ReduceFunction, AggregateFunction或FoldFunction
+	 * 进行增量窗口聚合计算，这可以在很大程度上解决ProcessWindowFunction的性能问题。
 	 *
 	 * @param function The window function.
 	 * @param resultType Type information for the result type of the window function

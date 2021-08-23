@@ -73,6 +73,8 @@ public abstract class KeyedProcessFunction<K, I, O> extends AbstractRichFunction
 	/**
 	 * Called when a timer set using {@link TimerService} fires.
 	 *
+	 * <p>timer触发的回调， OnTimerContext是触发的上下文信息
+	 *
 	 * @param timestamp The timestamp of the firing timer.
 	 * @param ctx An {@link OnTimerContext} that allows querying the timestamp, the {@link TimeDomain}, and the key
 	 *            of the firing timer and getting a {@link TimerService} for registering timers and querying the time.

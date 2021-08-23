@@ -31,6 +31,11 @@ import java.util.concurrent.ScheduledFuture;
 
 /**
  * Source contexts for various stream time characteristics.
+ *
+ * <p>在SourceFunction中，可以通过SourceContext接口提供的SourceContext.collectWithTimestamp(T element, long timestamp)
+ * 提交带有时间戳的消息，通过SourceContext.emitWatermark(Watermark mark)提交watermark。
+ * SourceContext有几种不同的实现，根据时间属性的设置，会自动选择不同的SourceContext。
+ *
  */
 public class StreamSourceContexts {
 

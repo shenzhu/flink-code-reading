@@ -25,6 +25,11 @@ import org.apache.flink.annotation.Internal;
  * for non-keyed use cases. Essentially, it gives all incoming records
  * the same key, which is a {@code (byte) 0} value.
  *
+ * <p>Non-Keyed Windows实际上就是基于Keyed Windows的一种特殊实现，只是使用了一种特殊的NullByteKeySelector，
+ * 这样所有的消息得到的Key都是一样的。
+ * Non-Keyed Windows的一个问题在于，由于所有消息的key都是一样的，那么所有的消息最终都会被同一个Task处理，
+ * 这个Task也会成为整个作业的瓶颈。
+ *
  * @param <T> The type of the input element.
  */
 @Internal

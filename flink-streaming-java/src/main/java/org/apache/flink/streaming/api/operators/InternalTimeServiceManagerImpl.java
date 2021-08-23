@@ -53,6 +53,10 @@ import static org.apache.flink.util.Preconditions.checkState;
  *
  * <b>NOTE:</b> These services are only available to keyed operators.
  *
+ * <p>AbstractStreamOperator使用InternalTimeServiceManager管理所有的InternalTimerService。
+ * 在InternalTimeServiceManager内部，InternalTimerService是和名称绑定的，AbstractStreamOperator在获取
+ * InternalTimerService时必须指定名称，这样可以方便地将不同的触发对象Triggerable绑定到不同的InternalTimerService中。
+ *
  * @param <K> The type of keys used for the timers and the registry.
  */
 @Internal
@@ -72,6 +76,7 @@ public class InternalTimeServiceManagerImpl<K> implements InternalTimeServiceMan
 	private final PriorityQueueSetFactory priorityQueueSetFactory;
 	private final ProcessingTimeService processingTimeService;
 
+	// InternalTimerService和名称绑定的
 	private final Map<String, InternalTimerServiceImpl<K, ?>> timerServices;
 
 	private final boolean useLegacySynchronousSnapshots;
@@ -140,6 +145,7 @@ public class InternalTimeServiceManagerImpl<K> implements InternalTimeServiceMan
 		// the following casting is to overcome type restrictions.
 		TimerSerializer<K, N> timerSerializer = new TimerSerializer<>(keySerializer, namespaceSerializer);
 
+		// 获取InternalTimerService，必须指定名称
 		InternalTimerServiceImpl<K, N> timerService = registerOrGetTimerService(name, timerSerializer);
 
 		timerService.startTimerService(
