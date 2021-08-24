@@ -40,6 +40,11 @@ import java.util.Queue;
  * asynchronous results in the order in which the {@link StreamElementQueueEntry} have been added
  * to the queue. Thus, even if the completion order can be arbitrary, the output order strictly
  * follows the insertion order (element cannot overtake each other).
+ *
+ * <p>在"有序"模式下，所有异步请求的结果必须按照消息的到达顺序提交到下游算子。
+ * 在这种模式下，StreamElementQueue的具体是实现是OrderedStreamElementQueue。
+ * OrderedStreamElementQueue的底层是一个有界的队列，异步请求的计算结果按顺序加入到队列中，
+ * 只有队列头部的异步请求完成后才可以从队列中获取计算结果。
  */
 @Internal
 public final class OrderedStreamElementQueue<OUT> implements StreamElementQueue<OUT> {
@@ -66,6 +71,7 @@ public final class OrderedStreamElementQueue<OUT> implements StreamElementQueue<
 
 	@Override
 	public void emitCompletedElement(TimestampedCollector<OUT> output) {
+		// 只有队列头部的请求完成后才解除阻塞状态
 		if (hasCompletedElements()) {
 			final StreamElementQueueEntry<OUT> head = queue.poll();
 			head.emitResult(output);

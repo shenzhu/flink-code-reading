@@ -153,6 +153,7 @@ public class AsyncWaitOperator<IN, OUT>
 	public void open() throws Exception {
 		super.open();
 
+		// 状态恢复的时候，从状态中取出所有为完成的消息，重新处理一遍
 		if (recoveredStreamElements != null) {
 			for (StreamElement element : recoveredStreamElements.get()) {
 				if (element.isRecord()) {
@@ -177,11 +178,13 @@ public class AsyncWaitOperator<IN, OUT>
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
 		// add element first to the queue
+		// 加入队列
 		final ResultFuture<OUT> entry = addToWorkQueue(element);
 
 		final ResultHandler resultHandler = new ResultHandler(element, entry);
 
 		// register a timeout for the entry if timeout is configured
+		// 注册一个定时器，在超时时调用timeout方法
 		if (timeout > 0L) {
 			final long timeoutTimestamp = timeout + getProcessingTimeService().getCurrentProcessingTime();
 
@@ -192,6 +195,7 @@ public class AsyncWaitOperator<IN, OUT>
 			resultHandler.setTimeoutTimer(timeoutTimer);
 		}
 
+		// 发送异步请求
 		userFunction.asyncInvoke(element.getValue(), resultHandler);
 	}
 
@@ -209,11 +213,13 @@ public class AsyncWaitOperator<IN, OUT>
 	public void snapshotState(StateSnapshotContext context) throws Exception {
 		super.snapshotState(context);
 
+		// 先清除状态
 		ListState<StreamElement> partitionableState =
 			getOperatorStateBackend().getListState(new ListStateDescriptor<>(STATE_NAME, inStreamElementSerializer));
 		partitionableState.clear();
 
 		try {
+			// 将所有未完成处理请求对应的消息加入状态中
 			partitionableState.addAll(queue.values());
 		} catch (Exception e) {
 			partitionableState.clear();
@@ -246,6 +252,8 @@ public class AsyncWaitOperator<IN, OUT>
 	 *
 	 * <p>Between two insertion attempts, this method yields the execution to the mailbox, such that events as well
 	 * as asynchronous results can be processed.
+	 *
+	 * <p>尝试将待完成的请求加入队列，如果队列已满(到达异步请求的上限)，会阻塞
 	 *
 	 * @param streamElement to add to the operator's queue
 	 * @throws InterruptedException if the current thread has been interrupted while yielding to mailbox

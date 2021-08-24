@@ -48,6 +48,11 @@ import java.util.Set;
  * by a watermark and no watermark can overtake a stream record.
  * However, stream records falling in the same segment between two watermarks can overtake each other (their emission
  * order is not guaranteed).
+ *
+ * <p>在"无序"模式下，异步计算结果的提交不是由消息到达的顺序确定的，而是取决于异步请求的完成顺序。
+ * 当然，在使用event time的情况下，要保证watermark语义的正确性, 在使用"处理时间"的情况下，由于不存在Watermark，
+ * 因此可以看作一种特殊的情况。
+ *
  */
 @Internal
 public final class UnorderedStreamElementQueue<OUT> implements StreamElementQueue<OUT> {
@@ -199,9 +204,11 @@ public final class UnorderedStreamElementQueue<OUT> implements StreamElementQueu
 	 */
 	static class Segment<OUT> {
 		/** Unfinished input elements. */
+		// 保存未完成的异步请求计算结果
 		private final Set<StreamElementQueueEntry<OUT>> incompleteElements;
 
 		/** Undrained finished elements. */
+		// 保存已完成的异步请求计算结果
 		private final Queue<StreamElementQueueEntry<OUT>> completedElements;
 
 		Segment(int initialCapacity) {
