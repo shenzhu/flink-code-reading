@@ -46,6 +46,8 @@ import java.io.Serializable;
  *
  * <p>Note: You can use a {@link CoGroupFunction} to perform an outer join.
  *
+ * <p>主要关注的是两个流中按照key匹配的每一对元素, 逻辑更类似于INNER JOIN.
+ *
  * @param <IN1> The type of the elements in the first input.
  * @param <IN2> The type of the elements in the second input.
  * @param <OUT> The type of the result elements.

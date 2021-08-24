@@ -78,6 +78,10 @@ import java.util.Objects;
  * per element. This timer indicates when an element is not considered for joining anymore and can
  * be removed from the state.
  *
+ * <p>在IntervalJoinOperator中，使用两个MapState分别保存两个数据流到达的消息，MapState的key是消息的时间。
+ * 当一个数据流有新消息到达时，就会去另一个数据流的状态中查找时间落在匹配范围内的消息，然后进行关联处理。
+ * 每一条消息会注册一个定时器，在时间越过该消息的有效范围后从状态中清除该消息。
+ *
  * @param <K>	The type of the key based on which we join elements.
  * @param <T1>	The type of the elements in the left stream.
  * @param <T2>	The type of the elements in the right stream.
@@ -223,8 +227,10 @@ public class IntervalJoinOperator<K, T1, T2, OUT>
 			return;
 		}
 
+		// 将消息加入状态中
 		addToBuffer(ourBuffer, ourValue, ourTimestamp);
 
+		// 从另一个数据流的状态中查找匹配的记录
 		for (Map.Entry<Long, List<BufferEntry<OTHER>>> bucket: otherBuffer.entries()) {
 			final long timestamp  = bucket.getKey();
 
@@ -242,6 +248,7 @@ public class IntervalJoinOperator<K, T1, T2, OUT>
 			}
 		}
 
+		// 注册清理状态的timer
 		long cleanupTime = (relativeUpperBound > 0L) ? ourTimestamp + relativeUpperBound : ourTimestamp;
 		if (isLeft) {
 			internalTimerService.registerEventTimeTimer(CLEANUP_NAMESPACE_LEFT, cleanupTime);

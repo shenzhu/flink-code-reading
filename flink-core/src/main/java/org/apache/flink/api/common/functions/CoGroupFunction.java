@@ -41,6 +41,8 @@ import java.io.Serializable;
  * <p>Some keys may only be contained in one of the two original data sets. In that case, the CoGroup function is invoked
  * with in empty input for the side of the data set that did not contain elements with that specific key.
  *
+ * <p>参数则是两个中key相同的所有元素, 可以实现INNER JOIN，也可以实现OUTER JOIN。
+ *
  * @param <IN1> The data type of the first input data set.
  * @param <IN2> The data type of the second input data set.
  * @param <O> The data type of the returned elements.

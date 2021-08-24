@@ -329,15 +329,18 @@ public class CoGroupedStreams<T1, T2> {
 			UnionTypeInfo<T1, T2> unionType = new UnionTypeInfo<>(input1.getType(), input2.getType());
 			UnionKeySelector<T1, T2, KEY> unionKeySelector = new UnionKeySelector<>(keySelector1, keySelector2);
 
+			// 左边流
 			DataStream<TaggedUnion<T1, T2>> taggedInput1 = input1
 					.map(new Input1Tagger<T1, T2>())
 					.setParallelism(input1.getParallelism())
 					.returns(unionType);
+			// 右边流
 			DataStream<TaggedUnion<T1, T2>> taggedInput2 = input2
 					.map(new Input2Tagger<T1, T2>())
 					.setParallelism(input2.getParallelism())
 					.returns(unionType);
 
+			// 合并成一个数据流
 			DataStream<TaggedUnion<T1, T2>> unionStream = taggedInput1.union(taggedInput2);
 
 			// we explicitly create the keyed stream to manually pass the key type information in
@@ -766,6 +769,7 @@ public class CoGroupedStreams<T1, T2> {
 		}
 	}
 
+	/** 将CoGroupFunction封装为 WindowFunction */
 	private static class CoGroupWindowFunction<T1, T2, T, KEY, W extends Window>
 			extends WrappingFunction<CoGroupFunction<T1, T2, T>>
 			implements WindowFunction<TaggedUnion<T1, T2>, T, KEY, W> {
@@ -785,6 +789,7 @@ public class CoGroupedStreams<T1, T2> {
 			List<T1> oneValues = new ArrayList<>();
 			List<T2> twoValues = new ArrayList<>();
 
+			// 窗口内的所有元素按标记重新分为左边的一组和右边的一组
 			for (TaggedUnion<T1, T2> val: values) {
 				if (val.isOne()) {
 					oneValues.add(val.getOne());
@@ -792,6 +797,7 @@ public class CoGroupedStreams<T1, T2> {
 					twoValues.add(val.getTwo());
 				}
 			}
+			// 调用CoGroupFunction
 			wrappedFunction.coGroup(oneValues, twoValues, out);
 		}
 	}

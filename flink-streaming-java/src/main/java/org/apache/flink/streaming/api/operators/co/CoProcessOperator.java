@@ -35,6 +35,10 @@ import static org.apache.flink.util.Preconditions.checkState;
 /**
  * A {@link org.apache.flink.streaming.api.operators.StreamOperator} for executing
  * {@link CoProcessFunction CoProcessFunctions}.
+ *
+ * <p>ConnectedStreams配合CoProcessFunction生成CoProcessOperator，在运行时被调度为TwoInputStreamTask，
+ * 从名字也可以看出来，这个Task处理的是两个输入。
+ *
  */
 @Internal
 public class CoProcessOperator<IN1, IN2, OUT>

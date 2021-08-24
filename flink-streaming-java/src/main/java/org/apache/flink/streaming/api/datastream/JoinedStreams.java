@@ -397,6 +397,7 @@ public class JoinedStreams<T1, T2> {
 			//clean the closure
 			function = input1.getExecutionEnvironment().clean(function);
 
+			// Join操作被转换为 CoGroup
 			coGroupedWindowedStream = input1.coGroup(input2)
 				.where(keySelector1)
 				.equalTo(keySelector2)
@@ -405,6 +406,7 @@ public class JoinedStreams<T1, T2> {
 				.evictor(evictor)
 				.allowedLateness(allowedLateness);
 
+			// JoinFunction被包装为CoGroupFunction
 			return coGroupedWindowedStream
 					.apply(new JoinCoGroupFunction<>(function), resultType);
 		}
@@ -457,6 +459,7 @@ public class JoinedStreams<T1, T2> {
 		public void coGroup(Iterable<T1> first, Iterable<T2> second, Collector<T> out) throws Exception {
 			for (T1 val1: first) {
 				for (T2 val2: second) {
+					// 每一个匹配的元素对
 					out.collect(wrappedFunction.join(val1, val2));
 				}
 			}
