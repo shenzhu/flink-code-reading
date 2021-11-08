@@ -71,10 +71,14 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
 	@Override
 	protected void onStart() {
+		// 启动jobGraphStore
 		startServices();
 
+		// 调用recoverJobAsync(), 对JobGraphStore中的方法进行恢复
 		onGoingRecoveryOperation = recoverJobsAsync()
+			// 创建Dispatcher并将回复的JobGraph提交到Dispatcher上运行
 			.thenAccept(this::createDispatcherIfRunning)
+			// 捕获执行过程中出现的异常并处理
 			.handle(this::onErrorIfRunning);
 	}
 

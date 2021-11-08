@@ -57,8 +57,10 @@ public class ResourceManagerRuntimeServices {
 			ScheduledExecutor scheduledExecutor,
 			SlotManagerMetricGroup slotManagerMetricGroup) {
 
+		// 创建SlotManager服务
 		final SlotManager slotManager = createSlotManager(configuration, scheduledExecutor, slotManagerMetricGroup);
 
+		// 创建JobLeaderIdService服务
 		final JobLeaderIdService jobLeaderIdService = new JobLeaderIdService(
 			highAvailabilityServices,
 			scheduledExecutor,

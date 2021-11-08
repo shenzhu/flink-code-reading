@@ -94,11 +94,13 @@ public abstract class AbstractStreamOperator<OUT>
 	// ----------- configuration properties -------------
 
 	// A sane default for most operators
+	// 指定Operator的上下游算子链接策略
 	protected ChainingStrategy chainingStrategy = ChainingStrategy.HEAD;
 
 	// ---------------- runtime fields ------------------
 
 	/** The task that contains this operator (and other operators in the same chain). */
+	// 当前Operator所属的StreamTask，最终会通过StreamTask中的invoke方法执行当前的StreamTask中的所有Operator
 	private transient StreamTask<?, ?> container;
 
 	protected transient StreamConfig config;

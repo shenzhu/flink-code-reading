@@ -1137,7 +1137,9 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	// ------------------------------------------------------------------------
 
 	private void notifyOfNewResourceManagerLeader(String newLeaderAddress, ResourceManagerId newResourceManagerId) {
+		// 创建新的resourceManagerAddress
 		resourceManagerAddress = createResourceManagerAddress(newLeaderAddress, newResourceManagerId);
+		// 重新建立与ResourceManager之间的连接
 		reconnectToResourceManager(new FlinkException(String.format("ResourceManager leader changed to new address %s", resourceManagerAddress)));
 	}
 
@@ -1152,8 +1154,11 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	}
 
 	private void reconnectToResourceManager(Exception cause) {
+		// 关闭之前的连接
 		closeResourceManagerConnection(cause);
+		// 开始注册超时等待时间
 		startRegistrationTimeout();
+		// 尝试再次建立连接
 		tryConnectToResourceManager();
 	}
 
@@ -1181,6 +1186,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			taskManagerConfiguration.getTotalResourceProfile()
 		);
 
+		// 创建TaskExecutorToResourceManagerConnection
 		resourceManagerConnection =
 			new TaskExecutorToResourceManagerConnection(
 				log,
@@ -1191,6 +1197,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				getMainThreadExecutor(),
 				new ResourceManagerRegistrationListener(),
 				taskExecutorRegistration);
+		// 启动resourceManagerConnection
 		resourceManagerConnection.start();
 	}
 
@@ -1207,6 +1214,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			taskSlotTable.createSlotReport(getResourceID()),
 			taskManagerConfiguration.getTimeout());
 
+		// 如果上报异常，则重新和ResourceManager创建连接
 		slotReportResponseFuture.whenCompleteAsync(
 			(acknowledge, throwable) -> {
 				if (throwable != null) {
@@ -1239,6 +1247,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 			resourceManagerResourceId,
 			taskExecutorRegistrationId);
 
+		// 停止注册监听
 		stopRegistrationTimeout();
 	}
 
@@ -1280,6 +1289,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 	}
 
 	private void startRegistrationTimeout() {
+		// 从配置中获取参数作为判断超时的依据
 		final Time maxRegistrationDuration = taskManagerConfiguration.getMaxRegistrationDuration();
 
 		if (maxRegistrationDuration != null) {
@@ -1870,6 +1880,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 		@Override
 		public void notifyLeaderAddress(final String leaderAddress, final UUID leaderSessionID) {
 			runAsync(
+				// 根据新的LeaderAddress建立与ResourceManager之间的连接
 				() -> notifyOfNewResourceManagerLeader(
 					leaderAddress,
 					ResourceManagerId.fromUuidOrNull(leaderSessionID)));
@@ -1921,6 +1932,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 		@Override
 		public void onRegistrationSuccess(TaskExecutorToResourceManagerConnection connection, TaskExecutorRegistrationSuccess success) {
+			// 相关配置信息
 			final ResourceID resourceManagerId = success.getResourceManagerId();
 			final InstanceID taskExecutorRegistrationId = success.getRegistrationId();
 			final ClusterInformation clusterInformation = success.getClusterInformation();

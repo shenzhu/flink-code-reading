@@ -135,13 +135,16 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 	 */
 	public final void start() throws Exception {
 		synchronized (lock) {
+			// 检查RestServerEndpoint.state是否为CREATED状态
 			Preconditions.checkState(state == State.CREATED, "The RestServerEndpoint cannot be restarted.");
 
 			log.info("Starting rest endpoint.");
 
+			// 启动Rest Endpoint，创建Handler使用的Router用于根据地址寻找对应的Handlers
 			final Router router = new Router();
 			final CompletableFuture<String> restAddressFuture = new CompletableFuture<>();
 
+			// 调用registerHandler()方法注册已经加载的Handlers
 			handlers = initializeHandlers(restAddressFuture);
 
 			/* sort the handlers such that they are ordered the following:
@@ -180,6 +183,8 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 				}
 			};
 
+			// 创建bossGroup和workerGroup两个NioEventLoopGroup实例，可以将其理解为两个线程池
+			// bossGroup设置了一个用于处理连接请求和建立连接的线程，workGroup用于在连接建立之后处理I/O请求
 			NioEventLoopGroup bossGroup = new NioEventLoopGroup(1, new ExecutorThreadFactory("flink-rest-server-netty-boss"));
 			NioEventLoopGroup workerGroup = new NioEventLoopGroup(0, new ExecutorThreadFactory("flink-rest-server-netty-worker"));
 
@@ -189,6 +194,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 				.channel(NioServerSocketChannel.class)
 				.childHandler(initializer);
 
+			// 从restBindPortRange选择端口
 			Iterator<Integer> portsIterator;
 			try {
 				portsIterator = NetUtils.getPortRangeFromString(restBindPortRange);
@@ -198,6 +204,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 				throw new IllegalArgumentException("Invalid port range definition: " + restBindPortRange);
 			}
 
+			// 从portsIterator选择没有被占用的端口，作为bootstrap启动的端口
 			int chosenPort = 0;
 			while (portsIterator.hasNext()) {
 				try {

@@ -233,12 +233,14 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
 	private void startResourceManagerServices() throws Exception {
 		try {
+			// 从高可用服务中获取ResourceManager的leaderElectionService
 			leaderElectionService = highAvailabilityServices.getResourceManagerLeaderElectionService();
 
-			/*TODO 创建Yarn的Rm和NM的客户端，初始化并且启动*/
+			// ResourceManager初始化方法，主要由子类实现服务启动过程中需要执行的操作
 			initialize();
 
-			/*TODO 通过选举服务启动ResourceManager*/
+			// 让leaderElectionService选择当前的LeaderContender为Leader节点
+			//
 			leaderElectionService.start(this);
 			jobLeaderIdService.start(new JobLeaderIdActionsImpl());
 

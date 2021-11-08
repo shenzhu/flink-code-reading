@@ -129,6 +129,8 @@ public class DataStream<T> {
 
 	protected final StreamExecutionEnvironment environment;
 
+	// 当前DataStream对应的上一次转换操作，换句话讲，就是通过transformation
+	// 生成当前的DataStream
 	protected final Transformation<T> transformation;
 
 	/**
@@ -1251,6 +1253,7 @@ public class DataStream<T> {
 			StreamOperatorFactory<R> operatorFactory) {
 
 		// read the output type of the input Transform to coax out errors about MissingTypeInfo
+		// 获取上一次转换操作输出的TypeInformation信息
 		transformation.getOutputType();
 
 		OneInputTransformation<T, R> resultTransform = new OneInputTransformation<>(
@@ -1260,9 +1263,13 @@ public class DataStream<T> {
 				outTypeInfo,
 				environment.getParallelism());
 
+		// SingleOutputStreamOperator继承了DataStream类，属于特殊的DataStream
+		// 主要用于每次转换操作后返回给用户继续操作的数据结构
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		SingleOutputStreamOperator<R> returnStream = new SingleOutputStreamOperator(environment, resultTransform);
 
+		// 将创建好的OneInputTransformation添加到StreamExecutionEnvironment的Transformation集合中
+		// 用于生成StreamGraph对象
 		getExecutionEnvironment().addOperator(resultTransform);
 
 		return returnStream;

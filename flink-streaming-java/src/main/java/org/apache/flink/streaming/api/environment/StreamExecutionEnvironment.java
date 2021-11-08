@@ -154,6 +154,8 @@ public class StreamExecutionEnvironment {
 	/** Settings that control the checkpointing behavior. */
 	private final CheckpointConfig checkpointCfg = new CheckpointConfig();
 
+	// 当用户通过DataStream API构建Flink作业时，StreamExecutionEnvironment会将DataStream之间的转换
+	// 操作存储至StreamExecutionEnvironment的List<Transformation<?>> transforms集合
 	protected final List<Transformation<?>> transformations = new ArrayList<>();
 
 	private long bufferTimeout = StreamingJobGraphGenerator.UNDEFINED_NETWORK_BUFFER_TIMEOUT;
